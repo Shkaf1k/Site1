@@ -33,6 +33,9 @@
     .msg-time { font-size: 11px; color: #949ba4; }
     .msg-text { color: #dbdee1; font-size: 14px; margin-top: 4px; word-break: break-word; }
 
+    /* Медиаконтент в чате */
+    .chat-image { max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 8px; display: block; }
+
     /* Поле ввода */
     .input-area { padding: 0 16px 24px 16px; }
     .input-wrapper { background: #383a40; border-radius: 8px; padding: 11px 16px; display: flex; align-items: center; }
@@ -60,7 +63,7 @@
 
     <div class="input-area">
       <form id="chat-form" class="input-wrapper">
-        <input type="text" id="msg-input" placeholder="Написать сообщение..." autocomplete="off">
+        <input type="text" id="msg-input" placeholder="Написать сообщение или вставить ссылку на картинку..." autocomplete="off">
       </form>
     </div>
   </div>
@@ -91,7 +94,6 @@
     const messagesContainer = document.getElementById('messages');
     const channelTitle = document.getElementById('current-channel-title');
 
-    // Генерация постоянного цвета для ника
     function getColorForUser(str) {
       let hash = 0;
       for (let i = 0; i < str.length; i++) {
@@ -100,7 +102,6 @@
       return `hsl(${Math.abs(hash) % 360}, 60%, 50%)`;
     }
 
-    // Переключение каналов
     function switchChannel(channelId, element) {
       currentChannel = channelId;
       channelTitle.innerText = element.innerText;
@@ -112,7 +113,11 @@
       loadMessages();
     }
 
-    // Отправка
+    // Проверка, является ли текст ссылкой на картинку
+    function isImageUrl(url) {
+      return(url.match(/\.(jpeg|jpg|gif|png|webp)$/) != null) || url.startsWith('https://images.unsplash.com/');
+    }
+
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const text = input.value.trim();
@@ -126,7 +131,6 @@
       }
     });
 
-    // Загрузка сообщений канала
     function loadMessages() {
       if (unsubscribe) unsubscribe();
 
@@ -144,6 +148,12 @@
               const bg = getColorForUser(data.user || '');
               const firstLetter = data.user ? data.user[0].toUpperCase() : '?';
 
+              // Формирование содержимого (текст или картинка)
+              let messageBody = `<div class="msg-text">${data.text}</div>`;
+              if (isImageUrl(data.text)) {
+                messageBody += `<img src="${data.text}" class="chat-image" alt="Изображение">`;
+              }
+
               const msgDiv = document.createElement('div');
               msgDiv.className = 'message';
               msgDiv.innerHTML = `
@@ -153,7 +163,7 @@
                     <span class="msg-author">${data.user}</span>
                     <span class="msg-time">${timeStr}</span>
                   </div>
-                  <div class="msg-text">${data.text}</div>
+                  ${messageBody}
                 </div>
               `;
               messagesContainer.appendChild(msgDiv);
@@ -163,7 +173,6 @@
         });
     }
 
-    // Старт
     loadMessages();
   </script>
 </body>
