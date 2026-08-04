@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Idinakhuykord Web Mega Edition</title>
+  <title>Idinakhuykord Web Super Ultimate</title>
   <style>
     :root {
       --bg-main: #313338;
@@ -105,13 +105,25 @@
     .msg-time { font-size: 11px; color: var(--text-muted); }
     .msg-text { color: var(--text-main); font-size: 14px; margin-top: 4px; word-break: break-word; }
 
+    /* Эмбеды и Медиа */
+    .chat-image { max-width: 320px; max-height: 280px; border-radius: 8px; margin-top: 8px; display: block; }
+    .youtube-embed { margin-top: 8px; width: 100%; max-width: 420px; height: 236px; border: none; border-radius: 8px; }
+    .file-attachment { display: inline-flex; align-items: center; gap: 8px; background: var(--bg-input); padding: 8px 12px; border-radius: 6px; margin-top: 6px; text-decoration: none; color: #5865f2; font-size: 13px; font-weight: 600; }
+
+    /* 🎭 Блок реакций */
+    .reactions-list { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+    .reaction-badge { background: var(--bg-input); border: 1px solid var(--border); border-radius: 12px; padding: 2px 6px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; color: var(--text-main); }
+    .reaction-badge:hover { border-color: #5865f2; background: rgba(88, 101, 242, 0.1); }
+
     .action-btns { display: none; position: absolute; right: 10px; top: -10px; background: var(--bg-sidebar); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; z-index: 5; }
     .action-btn { background: none; border: none; color: var(--text-muted); padding: 4px 8px; font-size: 12px; cursor: pointer; }
     .action-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-header); }
 
-    .input-area { padding: 0 16px 24px 16px; position: relative; }
+    /* Поле ввода */
+    .input-area { padding: 0 16px 20px 16px; position: relative; }
+    .typing-indicator { font-size: 11px; color: var(--text-muted); height: 16px; margin-bottom: 2px; padding-left: 4px; }
     .reply-bar { display: none; background: var(--bg-sidebar); padding: 6px 12px; border-radius: 8px 8px 0 0; font-size: 12px; color: var(--text-muted); justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-    .input-wrapper { background: var(--bg-input); border-radius: 8px; padding: 8px 16px; display: flex; align-items: center; gap: 10px; }
+    .input-wrapper { background: var(--bg-input); border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; }
     .reply-active .input-wrapper { border-radius: 0 0 8px 8px; }
     .input-wrapper input { flex: 1; background: transparent; border: none; outline: none; color: var(--text-main); font-size: 15px; }
 
@@ -203,6 +215,8 @@
     <div class="messages" id="messages"></div>
 
     <div class="input-area" id="input-area-container">
+      <div class="typing-indicator" id="typing-indicator"></div>
+
       <div class="reply-bar" id="reply-bar">
         <span>Ответ <strong id="reply-target-user"></strong>: <span id="reply-target-text"></span></span>
         <span style="cursor:pointer; color:#f23f43;" onclick="cancelReply()">✕</span>
@@ -214,9 +228,12 @@
         <span onclick="addEmoji('👍')">👍</span>
         <span onclick="addEmoji('😎')">😎</span>
         <span onclick="addEmoji('💀')">💀</span>
+        <span onclick="addEmoji('❤️')">❤️</span>
+        <span onclick="addEmoji('🎉')">🎉</span>
       </div>
 
       <form id="chat-form" class="input-wrapper">
+        <button type="button" class="add-btn" onclick="attachFile()" title="Прикрепить файл">📎</button>
         <input type="text" id="msg-input" placeholder="Написать сообщение..." autocomplete="off">
         <button type="button" class="add-btn" onclick="toggleEmojiPicker()">😊</button>
       </form>
@@ -256,11 +273,12 @@
     let customStatusText = "";
 
     let unsubscribe = null;
+    let unsubscribeTyping = null;
     let replyTarget = null;
     let loadedMessagesCache = [];
     const activeUsers = new Map();
+    let typingTimeout = null;
 
-    // Запрос на Push-уведомления
     if ("Notification" in window && Notification.permission !== "granted") {
       Notification.requestPermission();
     }
@@ -277,26 +295,24 @@
     const replyBar = document.getElementById('reply-bar');
     const inputContainer = document.getElementById('input-area-container');
     const pinnedBar = document.getElementById('pinned-bar');
+    const typingIndicator = document.getElementById('typing-indicator');
 
-    // 🔊 Звук через Web Audio API (генерация тона без скачивания MP3)
+    // Web Audio API Звук
     function playNotificationSound() {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
         gain.gain.setValueAtTime(0.1, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.3);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(); osc.stop(ctx.currentTime + 0.3);
       } catch(e) {}
     }
 
-    // 🔔 Push Уведомления
     function triggerPushNotification(author, text) {
       if (document.hidden && Notification.permission === "granted") {
         new Notification(`Сообщение от ${author}`, {
@@ -306,17 +322,71 @@
       }
     }
 
-    // 🟢 Статусы
+    // ✍️ Индикатор печати
+    input.addEventListener('input', () => {
+      sendTypingStatus(true);
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => sendTypingStatus(false), 2000);
+    });
+
+    function sendTypingStatus(isTyping) {
+      db.collection("typing").doc(`${currentChannel}_${username}`).set({
+        user: username,
+        channel: currentChannel,
+        isTyping: isTyping,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    function listenTypingStatus() {
+      if (unsubscribeTyping) unsubscribeTyping();
+      unsubscribeTyping = db.collection("typing")
+        .where("channel", "==", currentChannel)
+        .where("isTyping", "==", true)
+        .onSnapshot((snapshot) => {
+          const typers = [];
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.user !== username) typers.push(data.user);
+          });
+          if (typers.length > 0) {
+            typingIndicator.innerText = `${typers.join(', ')} печатает...`;
+          } else {
+            typingIndicator.innerText = '';
+          }
+        });
+    }
+
+    // 📎 Загрузка файлов
+    const fileAttachmentInput = document.createElement('input');
+    fileAttachmentInput.type = 'file';
+    function attachFile() { fileAttachmentInput.click(); }
+    fileAttachmentInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const isImage = file.type.startsWith('image/');
+          const fileData = {
+            name: file.name,
+            url: evt.target.result,
+            isImage: isImage
+          };
+          sendMessage(file.name, fileData);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
     function changeUserStatus(val) {
       currentStatus = val;
-      const badge = document.getElementById('my-status-badge');
-      badge.className = `status-badge status-${val}`;
+      document.getElementById('my-status-badge').className = `status-badge status-${val}`;
       updateUserPresence();
     }
 
     function setCustomStatus(e) {
       e.stopPropagation();
-      const text = prompt("Кастомный статус (например: Играет в CS2):", customStatusText);
+      const text = prompt("Кастомный статус:", customStatusText);
       if (text !== null) {
         customStatusText = text;
         document.getElementById('my-custom-status-text').innerText = text || "Указать статус...";
@@ -335,11 +405,10 @@
       }, { merge: true });
     }
 
-    // Загрузка файла аватара
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file'; fileInput.accept = 'image/*';
-    function changeAvatar() { fileInput.click(); }
-    fileInput.onchange = (e) => {
+    const avatarFileInput = document.createElement('input');
+    avatarFileInput.type = 'file'; avatarFileInput.accept = 'image/*';
+    function changeAvatar() { avatarFileInput.click(); }
+    avatarFileInput.onchange = (e) => {
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
@@ -394,23 +463,32 @@
     }
     function cancelReply() { replyTarget = null; replyBar.style.display = 'none'; inputContainer.classList.remove('reply-active'); }
 
+    // 🎭 Реакции
+    function addReaction(docId, emoji) {
+      const ref = getCollectionRef().doc(docId);
+      db.runTransaction((transaction) => {
+        return transaction.get(ref).then((doc) => {
+          if (!doc.exists) return;
+          const reactions = doc.data().reactions || {};
+          const currentCount = reactions[emoji] || 0;
+          reactions[emoji] = currentCount + 1;
+          transaction.update(ref, { reactions });
+        });
+      });
+    }
+
     function togglePin(docId, currentPinnedState) {
       getCollectionRef().doc(docId).update({ isPinned: !currentPinnedState });
     }
 
-    // 💬 Личные Сообщения (ЛС / DM)
     function openDM(targetUser) {
       if (targetUser === username) return;
       isDirectMessage = true;
       targetDmUser = targetUser;
-      
-      // Генерируем уникальный ID чата для двух людей
       const dmId = [username, targetUser].sort().join('_DM_');
       currentChannel = dmId;
-
       channelTitle.innerText = `💬 ЛС с ${targetUser}`;
 
-      // Добавляем в UI список ЛС
       const dmContainer = document.getElementById('dm-channels');
       document.getElementById('dm-section-title').style.display = 'block';
 
@@ -452,27 +530,21 @@
       currentChannel = id;
       isDirectMessage = isDm;
       targetDmUser = dmTarget;
-
       channelTitle.innerText = isDm ? `💬 ЛС с ${dmTarget}` : el.innerText;
       document.querySelectorAll('.channel-item').forEach(e => e.classList.remove('active'));
       if (el) el.classList.add('active');
-
       cancelReply();
       loadMessages();
     }
 
     function getCollectionRef() {
-      if (isDirectMessage) {
-        return db.collection("direct_messages").doc(currentChannel).collection("messages");
-      } else {
-        return db.collection("channels").doc(currentChannel).collection("messages");
-      }
+      return isDirectMessage 
+        ? db.collection("direct_messages").doc(currentChannel).collection("messages")
+        : db.collection("channels").doc(currentChannel).collection("messages");
     }
 
     function deleteMessage(docId) {
-      if (confirm("Удалить сообщение?")) {
-        getCollectionRef().doc(docId).delete();
-      }
+      if (confirm("Удалить сообщение?")) getCollectionRef().doc(docId).delete();
     }
 
     function filterMessages() {
@@ -481,28 +553,41 @@
       renderMessages(filtered);
     }
 
+    function sendMessage(text, attachment = null) {
+      if (!text && !attachment) return;
+      const data = {
+        user: username,
+        role: userRole,
+        userAvatar: avatarUrl,
+        text: text,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      if (attachment) data.attachment = attachment;
+      if (replyTarget) data.reply = replyTarget;
+
+      getCollectionRef().add(data);
+      input.value = ''; 
+      cancelReply();
+      sendTypingStatus(false);
+    }
+
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      const text = input.value.trim();
-      if (text) {
-        const data = {
-          user: username,
-          role: userRole,
-          userAvatar: avatarUrl,
-          text: text,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        if (replyTarget) data.reply = replyTarget;
-
-        getCollectionRef().add(data);
-        input.value = ''; cancelReply();
-      }
+      sendMessage(input.value.trim());
     });
+
+    // 🎬 Парсер YouTube видео
+    function getYouTubeEmbedUrl(text) {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = text.match(regExp);
+      return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+    }
 
     let isInitialLoad = true;
     function loadMessages() {
       if (unsubscribe) unsubscribe();
       isInitialLoad = true;
+      listenTypingStatus();
 
       unsubscribe = getCollectionRef()
         .orderBy("createdAt", "asc")
@@ -549,9 +634,38 @@
         let replyHTML = data.reply ? `<div class="reply-quote"><span>@${data.reply.author}</span>: ${data.reply.text}</div>` : '';
         const safeText = data.text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
+        let mediaBody = '';
+        const ytEmbed = getYouTubeEmbedUrl(data.text);
+        if (ytEmbed) {
+          mediaBody += `<iframe class="youtube-embed" src="${ytEmbed}" allowfullscreen></iframe>`;
+        }
+
+        if (data.attachment) {
+          if (data.attachment.isImage) {
+            mediaBody += `<img src="${data.attachment.url}" class="chat-image" alt="Вложение">`;
+          } else {
+            mediaBody += `<a href="${data.attachment.url}" download="${data.attachment.name}" class="file-attachment">📄 ${data.attachment.name}</a>`;
+          }
+        }
+
+        // Рендер реакций
+        let reactionsHTML = '';
+        if (data.reactions) {
+          reactionsHTML = '<div class="reactions-list">';
+          for (const [emoji, count] of Object.entries(data.reactions)) {
+            if (count > 0) {
+              reactionsHTML += `<div class="reaction-badge" onclick="addReaction('${docId}', '${emoji}')">${emoji} ${count}</div>`;
+            }
+          }
+          reactionsHTML += '</div>';
+        }
+
         const canDelete = (data.user === username) || (userRole === "Admin" || userRole === "Mod");
 
         let actionBtns = `<div class="action-btns">
+          <button class="action-btn" onclick="addReaction('${docId}', '❤️')">❤️</button>
+          <button class="action-btn" onclick="addReaction('${docId}', '👍')">👍</button>
+          <button class="action-btn" onclick="addReaction('${docId}', '🔥')">🔥</button>
           <button class="action-btn" onclick="setReply('${data.user}', '${safeText}')">↩️</button>
           <button class="action-btn" onclick="togglePin('${docId}', ${!!data.isPinned})">📌</button>`;
         if (canDelete) actionBtns += `<button class="action-btn" onclick="deleteMessage('${docId}')">🗑️</button>`;
@@ -572,6 +686,8 @@
                 <span class="msg-time">${timeStr}</span>
               </div>
               <div class="msg-text">${data.text}</div>
+              ${mediaBody}
+              ${reactionsHTML}
             </div>
           </div>
           ${actionBtns}
@@ -581,7 +697,6 @@
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    // Слушатель глобального списка пользователей
     db.collection("users").onSnapshot((snapshot) => {
       membersList.innerHTML = '';
       snapshot.forEach((doc) => {
@@ -609,7 +724,7 @@
       });
     });
 
-    // 🔊 ГОЛОСОВЫЕ КАНАЛЫ (PeerJS / WebRTC)
+    // Голосовая связь PeerJS
     let peer = null;
     let localStream = null;
 
@@ -618,8 +733,6 @@
 
       navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then((stream) => {
         localStream = stream;
-        
-        // Регистрируем Peer с именем пользователя
         peer = new Peer(username.toLowerCase().replace(/[^a-z0-9]/g, ''));
 
         peer.on('open', (id) => {
@@ -627,14 +740,12 @@
           document.getElementById('connected-voice-name').innerText = channelName;
         });
 
-        // Отвечаем на входящие звонки
         peer.on('call', (call) => {
           call.answer(localStream);
           call.on('stream', (remoteStream) => {
             playRemoteAudio(remoteStream);
           });
         });
-
       }).catch((err) => {
         alert("Не удалось получить доступ к микрофону!");
       });
@@ -642,20 +753,13 @@
 
     function playRemoteAudio(stream) {
       const audio = document.createElement('audio');
-      audio.srcObject = stream;
-      audio.autoplay = true;
+      audio.srcObject = stream; audio.autoplay = true;
       document.body.appendChild(audio);
     }
 
     function leaveVoiceChannel() {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
-      }
-      if (peer) {
-        peer.destroy();
-        peer = null;
-      }
+      if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
+      if (peer) { peer.destroy(); peer = null; }
       document.getElementById('voice-status-bar').style.display = 'none';
     }
 
