@@ -26,7 +26,10 @@
     .messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
 
     .message { display: flex; gap: 16px; }
-    .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; }
+    .avatar-wrapper { position: relative; width: 40px; height: 40px; flex-shrink: 0; }
+    .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+    .status-dot { position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-radius: 50%; background: #23a55a; border: 2px solid #313338; }
+    
     .msg-content { display: flex; flex-direction: column; }
     .msg-header { display: flex; align-items: baseline; gap: 8px; }
     .msg-author { font-weight: 600; color: #f2f3f5; font-size: 15px; }
@@ -35,17 +38,24 @@
 
     .chat-image { max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 8px; display: block; }
 
-    /* Поле ввода */
-    .input-area { padding: 0 16px 24px 16px; }
-    .input-wrapper { background: #383a40; border-radius: 8px; padding: 11px 16px; display: flex; align-items: center; }
-    .input-wrapper input { width: 100%; background: transparent; border: none; outline: none; color: #dbdee1; font-size: 15px; }
+    /* Поле ввода + Эмодзи */
+    .input-area { padding: 0 16px 24px 16px; position: relative; }
+    .input-wrapper { background: #383a40; border-radius: 8px; padding: 8px 16px; display: flex; align-items: center; gap: 10px; }
+    .input-wrapper input { flex: 1; background: transparent; border: none; outline: none; color: #dbdee1; font-size: 15px; }
+    .emoji-btn { background: none; border: none; font-size: 20px; cursor: pointer; opacity: 0.7; transition: 0.2s; }
+    .emoji-btn:hover { opacity: 1; transform: scale(1.1); }
+
+    /* Панель выбора смайлов */
+    .emoji-picker { display: none; position: absolute; bottom: 70px; right: 16px; background: #2b2d31; border: 1px solid #1f2023; border-radius: 8px; padding: 10px; gap: 8px; grid-template-columns: repeat(5, 1fr); box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 10; }
+    .emoji-picker span { font-size: 22px; cursor: pointer; text-align: center; transition: 0.1s; }
+    .emoji-picker span:hover { transform: scale(1.2); }
 
     /* Список участников (справа) */
     .members-sidebar { width: 200px; background: #2b2d31; padding: 16px 8px; display: flex; flex-direction: column; gap: 8px; border-left: 1px solid #1f2023; }
     .members-title { font-size: 12px; font-weight: bold; color: #949ba4; text-transform: uppercase; padding-left: 8px; margin-bottom: 4px; }
     .member-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; color: #949ba4; }
     .member-item:hover { background: #35373c; color: #f2f3f5; }
-    .member-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white; }
+    .member-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white; position: relative; }
   </style>
 </head>
 <body>
@@ -68,14 +78,28 @@
     <div class="messages" id="messages"></div>
 
     <div class="input-area">
+      <div class="emoji-picker" id="emoji-picker">
+        <span onclick="addEmoji('🔥')">🔥</span>
+        <span onclick="addEmoji('😂')">😂</span>
+        <span onclick="addEmoji('👍')">👍</span>
+        <span onclick="addEmoji('😎')">😎</span>
+        <span onclick="addEmoji('💀')">💀</span>
+        <span onclick="addEmoji('❤️')">❤️</span>
+        <span onclick="addEmoji('🎉')">🎉</span>
+        <span onclick="addEmoji('👀')">👀</span>
+        <span onclick="addEmoji('🚀')">🚀</span>
+        <span onclick="addEmoji('💩')">💩</span>
+      </div>
+
       <form id="chat-form" class="input-wrapper">
         <input type="text" id="msg-input" placeholder="Написать сообщение или вставить ссылку..." autocomplete="off">
+        <button type="button" class="emoji-btn" onclick="toggleEmojiPicker()">😊</button>
       </form>
     </div>
   </div>
 
   <div class="members-sidebar">
-    <div class="members-title">Участники</div>
+    <div class="members-title">Участники в сети</div>
     <div id="members-list"></div>
   </div>
 
@@ -98,16 +122,13 @@
     const username = prompt("Введите ваш никнейм:") || "Пользователь";
     let currentChannel = "general";
     let unsubscribe = null;
-    let isFirstLoad = true;
-
-    // Звук уведомления Discord
-    const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
     const form = document.getElementById('chat-form');
     const input = document.getElementById('msg-input');
     const messagesContainer = document.getElementById('messages');
     const channelTitle = document.getElementById('current-channel-title');
     const membersList = document.getElementById('members-list');
+    const emojiPicker = document.getElementById('emoji-picker');
 
     const activeUsers = new Set();
 
@@ -119,6 +140,16 @@
       return `hsl(${Math.abs(hash) % 360}, 60%, 50%)`;
     }
 
+    function toggleEmojiPicker() {
+      emojiPicker.style.display = emojiPicker.style.display === 'grid' ? 'none' : 'grid';
+    }
+
+    function addEmoji(emoji) {
+      input.value += emoji;
+      input.focus();
+      emojiPicker.style.display = 'none';
+    }
+
     function switchChannel(channelId, element) {
       currentChannel = channelId;
       channelTitle.innerText = element.innerText;
@@ -127,7 +158,6 @@
       element.classList.add('active');
 
       input.placeholder = `Написать в ${element.innerText}`;
-      isFirstLoad = true;
       loadMessages();
     }
 
@@ -143,7 +173,10 @@
         const memberDiv = document.createElement('div');
         memberDiv.className = 'member-item';
         memberDiv.innerHTML = `
-          <div class="member-avatar" style="background-color: ${bg}">${letter}</div>
+          <div class="member-avatar" style="background-color: ${bg}">
+            ${letter}
+            <div class="status-dot"></div>
+          </div>
           <span>${user}</span>
         `;
         membersList.appendChild(memberDiv);
@@ -160,6 +193,7 @@
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         input.value = '';
+        emojiPicker.style.display = 'none';
       }
     });
 
@@ -170,7 +204,6 @@
         .orderBy("createdAt", "asc")
         .onSnapshot((snapshot) => {
           messagesContainer.innerHTML = '';
-          let hasNewMessage = false;
 
           snapshot.forEach((doc) => {
             const data = doc.data();
@@ -192,7 +225,10 @@
               const msgDiv = document.createElement('div');
               msgDiv.className = 'message';
               msgDiv.innerHTML = `
-                <div class="avatar" style="background-color: ${bg}">${firstLetter}</div>
+                <div class="avatar-wrapper">
+                  <div class="avatar" style="background-color: ${bg}">${firstLetter}</div>
+                  <div class="status-dot"></div>
+                </div>
                 <div class="msg-content">
                   <div class="msg-header">
                     <span class="msg-author">${data.user}</span>
@@ -202,16 +238,9 @@
                 </div>
               `;
               messagesContainer.appendChild(msgDiv);
-              hasNewMessage = true;
             }
           });
 
-          // Воспроизводим звук при новом сообщении (если это не первая загрузка)
-          if (hasNewMessage && !isFirstLoad) {
-            notificationSound.play().catch(() => {});
-          }
-
-          isFirstLoad = false;
           updateMembersList();
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
         });
