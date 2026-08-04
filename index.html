@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Idinakhuykord Web Super Ultimate</title>
+  <title>Idinakhuykord Web Super Ultimate+</title>
   <style>
     :root {
       --bg-main: #313338;
@@ -15,6 +15,7 @@
       --text-header: #f2f3f5;
       --text-muted: #949ba4;
       --border: #1f2023;
+      --card-bg: #232428;
     }
 
     body.amoled-theme {
@@ -27,6 +28,7 @@
       --text-header: #ffffff;
       --text-muted: #72767d;
       --border: #1a1a1a;
+      --card-bg: #111111;
     }
 
     body.light-theme {
@@ -39,6 +41,7 @@
       --text-header: #060607;
       --text-muted: #5c5e66;
       --border: #e3e5e8;
+      --card-bg: #f8f9fa;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'gg sans', 'Noto Sans', sans-serif; }
@@ -105,6 +108,12 @@
     .msg-time { font-size: 11px; color: var(--text-muted); }
     .msg-text { color: var(--text-main); font-size: 14px; margin-top: 4px; word-break: break-word; }
 
+    /* Markdown стили в сообщениях */
+    .msg-text strong { font-weight: bold; color: var(--text-header); }
+    .msg-text em { font-style: italic; }
+    .msg-text del { text-decoration: line-through; opacity: 0.8; }
+    .msg-text code { background: rgba(0,0,0,0.2); padding: 2px 4px; border-radius: 3px; font-family: monospace; font-size: 13px; }
+
     /* Эмбеды и Медиа */
     .chat-image { max-width: 320px; max-height: 280px; border-radius: 8px; margin-top: 8px; display: block; }
     .youtube-embed { margin-top: 8px; width: 100%; max-width: 420px; height: 236px; border: none; border-radius: 8px; }
@@ -138,6 +147,18 @@
     .member-details { display: flex; flex-direction: column; }
     .member-name { font-size: 13px; font-weight: 600; color: var(--text-header); }
     .member-status-text { font-size: 10px; color: var(--text-muted); }
+
+    /* 🟪 Модальное окно профиля */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
+    .profile-card { width: 300px; background: var(--card-bg); border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid var(--border); display: flex; flex-direction: column; }
+    .profile-card-header { height: 75px; background: #5865f2; position: relative; }
+    .profile-card-avatar { position: absolute; bottom: -30px; left: 16px; width: 68px; height: 68px; border-radius: 50%; border: 4px solid var(--card-bg); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white; }
+    .profile-card-body { padding: 40px 16px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+    .profile-card-username { font-size: 18px; font-weight: bold; color: var(--text-header); }
+    .profile-card-role { display: inline-block; font-size: 10px; font-weight: bold; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: #5865f2; color: white; width: fit-content; }
+    .profile-card-status { font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; }
+    .profile-card-btn { margin-top: 10px; background: #5865f2; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .profile-card-btn:hover { background: #4752c4; }
   </style>
 </head>
 <body>
@@ -174,7 +195,7 @@
     </div>
 
     <div class="user-profile-bar">
-      <div class="profile-info" onclick="changeAvatar()">
+      <div class="profile-info" onclick="showUserProfile(username)">
         <div class="avatar-wrapper">
           <div class="avatar" id="my-avatar">?</div>
           <div class="status-badge status-online" id="my-status-badge"></div>
@@ -234,7 +255,7 @@
 
       <form id="chat-form" class="input-wrapper">
         <button type="button" class="add-btn" onclick="attachFile()" title="Прикрепить файл">📎</button>
-        <input type="text" id="msg-input" placeholder="Написать сообщение..." autocomplete="off">
+        <input type="text" id="msg-input" placeholder="Написать сообщение... (**жирный**, *курсив*, ~~зачеркнутый~~)" autocomplete="off">
         <button type="button" class="add-btn" onclick="toggleEmojiPicker()">😊</button>
       </form>
     </div>
@@ -243,6 +264,21 @@
   <div class="members-sidebar">
     <div class="members-title">Участники</div>
     <div id="members-list"></div>
+  </div>
+
+  <div class="modal-overlay" id="profile-modal" onclick="closeProfileModal(event)">
+    <div class="profile-card" onclick="event.stopPropagation()">
+      <div class="profile-card-header">
+        <div class="profile-card-avatar" id="modal-avatar">?</div>
+      </div>
+      <div class="profile-card-body">
+        <div class="profile-card-username" id="modal-username">User</div>
+        <span class="profile-card-role" id="modal-role">USER</span>
+        <div class="profile-card-status" id="modal-status">Статус: В сети</div>
+        <button class="profile-card-btn" id="modal-dm-btn">Написать в ЛС</button>
+        <button class="profile-card-btn" id="modal-change-avatar-btn" style="display:none; background:#2b2d31;" onclick="changeAvatar()">Сменить аватар</button>
+      </div>
+    </div>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -276,7 +312,6 @@
     let unsubscribeTyping = null;
     let replyTarget = null;
     let loadedMessagesCache = [];
-    const activeUsers = new Map();
     let typingTimeout = null;
 
     if ("Notification" in window && Notification.permission !== "granted") {
@@ -297,20 +332,48 @@
     const pinnedBar = document.getElementById('pinned-bar');
     const typingIndicator = document.getElementById('typing-indicator');
 
-    // Web Audio API Звук
-    function playNotificationSound() {
+    // 🔊 Генератор звуковых эффектов (Web Audio API)
+    function playSound(type) {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
         osc.connect(gain); gain.connect(ctx.destination);
-        osc.start(); osc.stop(ctx.currentTime + 0.3);
+
+        if (type === 'message') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+          osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.08, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+          osc.start(); osc.stop(ctx.currentTime + 0.25);
+        } else if (type === 'voice-join') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(400, ctx.currentTime);
+          osc.frequency.setValueAtTime(600, ctx.currentTime + 0.12);
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+          osc.start(); osc.stop(ctx.currentTime + 0.3);
+        } else if (type === 'voice-leave') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(600, ctx.currentTime);
+          osc.frequency.setValueAtTime(350, ctx.currentTime + 0.12);
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+          osc.start(); osc.stop(ctx.currentTime + 0.3);
+        }
       } catch(e) {}
+    }
+
+    // 📝 Парсер Markdown
+    function parseMarkdown(text) {
+      if (!text) return '';
+      let safe = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      safe = safe.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      safe = safe.replace(/~~(.*?)~~/g, '<del>$1</del>');
+      safe = safe.replace(/`(.*?)`/g, '<code>$1</code>');
+      return safe;
     }
 
     function triggerPushNotification(author, text) {
@@ -322,7 +385,7 @@
       }
     }
 
-    // ✍️ Индикатор печати
+    // Индикатор печати
     input.addEventListener('input', () => {
       sendTypingStatus(true);
       clearTimeout(typingTimeout);
@@ -349,15 +412,11 @@
             const data = doc.data();
             if (data.user !== username) typers.push(data.user);
           });
-          if (typers.length > 0) {
-            typingIndicator.innerText = `${typers.join(', ')} печатает...`;
-          } else {
-            typingIndicator.innerText = '';
-          }
+          typingIndicator.innerText = typers.length > 0 ? `${typers.join(', ')} печатает...` : '';
         });
     }
 
-    // 📎 Загрузка файлов
+    // Загрузка файлов
     const fileAttachmentInput = document.createElement('input');
     fileAttachmentInput.type = 'file';
     function attachFile() { fileAttachmentInput.click(); }
@@ -366,12 +425,7 @@
       if (file) {
         const reader = new FileReader();
         reader.onload = (evt) => {
-          const isImage = file.type.startsWith('image/');
-          const fileData = {
-            name: file.name,
-            url: evt.target.result,
-            isImage: isImage
-          };
+          const fileData = { name: file.name, url: evt.target.result, isImage: file.type.startsWith('image/') };
           sendMessage(file.name, fileData);
         };
         reader.readAsDataURL(file);
@@ -424,6 +478,7 @@
             updateMyAvatarUI();
             updateUserPresence();
             loadMessages();
+            closeProfileModal();
           };
         };
         reader.readAsDataURL(file);
@@ -463,15 +518,54 @@
     }
     function cancelReply() { replyTarget = null; replyBar.style.display = 'none'; inputContainer.classList.remove('reply-active'); }
 
-    // 🎭 Реакции
+    // 🟪 Модальное окно карточки профиля
+    function showUserProfile(targetUser) {
+      db.collection("users").doc(targetUser).get().then((doc) => {
+        const data = doc.exists ? doc.data() : { user: targetUser, role: 'User', status: 'online' };
+        
+        const modal = document.getElementById('profile-modal');
+        const avatarEl = document.getElementById('modal-avatar');
+        
+        document.getElementById('modal-username').innerText = data.user;
+        document.getElementById('modal-role').innerText = data.role || 'USER';
+        document.getElementById('modal-status').innerText = `Статус: ${data.customStatus || data.status || 'в сети'}`;
+
+        if (data.avatar) {
+          avatarEl.style.backgroundImage = `url('${data.avatar}')`;
+          avatarEl.innerText = '';
+        } else {
+          avatarEl.style.backgroundImage = 'none';
+          avatarEl.style.backgroundColor = getColorForUser(data.user);
+          avatarEl.innerText = data.user[0].toUpperCase();
+        }
+
+        const dmBtn = document.getElementById('modal-dm-btn');
+        const changeAvatarBtn = document.getElementById('modal-change-avatar-btn');
+
+        if (targetUser === username) {
+          dmBtn.style.display = 'none';
+          changeAvatarBtn.style.display = 'block';
+        } else {
+          dmBtn.style.display = 'block';
+          changeAvatarBtn.style.display = 'none';
+          dmBtn.onclick = () => { closeProfileModal(); openDM(targetUser); };
+        }
+
+        modal.style.display = 'flex';
+      });
+    }
+
+    function closeProfileModal(e) {
+      document.getElementById('profile-modal').style.display = 'none';
+    }
+
     function addReaction(docId, emoji) {
       const ref = getCollectionRef().doc(docId);
       db.runTransaction((transaction) => {
         return transaction.get(ref).then((doc) => {
           if (!doc.exists) return;
           const reactions = doc.data().reactions || {};
-          const currentCount = reactions[emoji] || 0;
-          reactions[emoji] = currentCount + 1;
+          reactions[emoji] = (reactions[emoji] || 0) + 1;
           transaction.update(ref, { reactions });
         });
       });
@@ -576,10 +670,9 @@
       sendMessage(input.value.trim());
     });
 
-    // 🎬 Парсер YouTube видео
     function getYouTubeEmbedUrl(text) {
       const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-      const match = text.match(regExp);
+      const match = text ? text.match(regExp) : null;
       return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
     }
 
@@ -599,7 +692,7 @@
             if (change.type === "added" && !isInitialLoad) {
               const msgData = change.doc.data();
               if (msgData.user !== username) {
-                playNotificationSound();
+                playSound('message');
                 triggerPushNotification(msgData.user, msgData.text);
               }
             }
@@ -631,7 +724,7 @@
         const avatarStyle = data.userAvatar ? `background-image: url('${data.userAvatar}')` : `background-color: ${bg}`;
         const avatarInner = data.userAvatar ? '' : firstLetter;
 
-        let replyHTML = data.reply ? `<div class="reply-quote"><span>@${data.reply.author}</span>: ${data.reply.text}</div>` : '';
+        let replyHTML = data.reply ? `<div class="reply-quote"><span>@${data.reply.author}</span>: ${parseMarkdown(data.reply.text)}</div>` : '';
         const safeText = data.text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
         let mediaBody = '';
@@ -648,7 +741,6 @@
           }
         }
 
-        // Рендер реакций
         let reactionsHTML = '';
         if (data.reactions) {
           reactionsHTML = '<div class="reactions-list">';
@@ -676,16 +768,16 @@
         msgDiv.innerHTML = `
           ${replyHTML}
           <div class="msg-main">
-            <div class="avatar-wrapper" onclick="openDM('${data.user}')" style="cursor:pointer" title="Нажмите, чтобы открыть ЛС">
+            <div class="avatar-wrapper" onclick="showUserProfile('${data.user}')" style="cursor:pointer" title="Открыть профиль">
               <div class="avatar" style="${avatarStyle}">${avatarInner}</div>
             </div>
             <div class="msg-content">
               <div class="msg-header">
-                <span class="msg-author" onclick="openDM('${data.user}')" style="cursor:pointer">${data.user}</span>
+                <span class="msg-author" onclick="showUserProfile('${data.user}')" style="cursor:pointer">${data.user}</span>
                 <span class="role-badge">${data.role || 'User'}</span>
                 <span class="msg-time">${timeStr}</span>
               </div>
-              <div class="msg-text">${data.text}</div>
+              <div class="msg-text">${parseMarkdown(data.text)}</div>
               ${mediaBody}
               ${reactionsHTML}
             </div>
@@ -709,7 +801,7 @@
 
         const div = document.createElement('div');
         div.className = 'member-item';
-        div.onclick = () => openDM(u.user);
+        div.onclick = () => showUserProfile(u.user);
         div.innerHTML = `
           <div class="avatar-wrapper">
             <div class="member-avatar" style="${avatarStyle}">${letterContent}</div>
@@ -736,6 +828,7 @@
         peer = new Peer(username.toLowerCase().replace(/[^a-z0-9]/g, ''));
 
         peer.on('open', (id) => {
+          playSound('voice-join');
           document.getElementById('voice-status-bar').style.display = 'flex';
           document.getElementById('connected-voice-name').innerText = channelName;
         });
@@ -760,6 +853,7 @@
     function leaveVoiceChannel() {
       if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
       if (peer) { peer.destroy(); peer = null; }
+      playSound('voice-leave');
       document.getElementById('voice-status-bar').style.display = 'none';
     }
 
