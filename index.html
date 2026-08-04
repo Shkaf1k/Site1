@@ -3,75 +3,117 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Idinakhuykord Web</title>
+  <title>Idinakhuykord Web Ultimate</title>
   <style>
+    /* Переменные тем оформления */
+    :root {
+      --bg-main: #313338;
+      --bg-sidebar: #2b2d31;
+      --bg-servers: #1e1f22;
+      --bg-header: #2b2d31;
+      --bg-input: #383a40;
+      --text-main: #dbdee1;
+      --text-header: #f2f3f5;
+      --text-muted: #949ba4;
+      --border: #1f2023;
+    }
+
+    body.amoled-theme {
+      --bg-main: #000000;
+      --bg-sidebar: #0a0a0a;
+      --bg-servers: #050505;
+      --bg-header: #0a0a0a;
+      --bg-input: #121212;
+      --text-main: #ffffff;
+      --text-header: #ffffff;
+      --text-muted: #72767d;
+      --border: #1a1a1a;
+    }
+
+    body.light-theme {
+      --bg-main: #ffffff;
+      --bg-sidebar: #f2f3f5;
+      --bg-servers: #e3e5e8;
+      --bg-header: #ffffff;
+      --bg-input: #ebedef;
+      --text-main: #313338;
+      --text-header: #060607;
+      --text-muted: #5c5e66;
+      --border: #e3e5e8;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'gg sans', 'Noto Sans', sans-serif; }
-    body { background-color: #313338; color: #dbdee1; display: flex; height: 100vh; overflow: hidden; }
+    body { background-color: var(--bg-main); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; transition: 0.2s ease; }
 
-    /* Панель серверов */
-    .servers-sidebar { width: 72px; background: #1e1f22; display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 8px; }
+    /* Серверы */
+    .servers-sidebar { width: 72px; background: var(--bg-servers); display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 8px; }
     .server-icon { width: 48px; height: 48px; background: #5865f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; cursor: pointer; transition: 0.2s; }
-    .server-icon:hover { border-radius: 16px; background: #4752c4; }
 
-    /* Панель каналов */
-    .channels-sidebar { width: 240px; background: #2b2d31; display: flex; flex-direction: column; }
-    .server-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-weight: bold; color: #f2f3f5; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-    .add-channel-btn { background: none; border: none; color: #949ba4; font-size: 20px; cursor: pointer; }
-    .add-channel-btn:hover { color: #f2f3f5; }
+    /* Каналы */
+    .channels-sidebar { width: 240px; background: var(--bg-sidebar); display: flex; flex-direction: column; }
+    .server-header { height: 48px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-weight: bold; color: var(--text-header); }
+    .add-btn { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; }
 
     .channel-list { padding: 8px; flex: 1; overflow-y: auto; }
-    .channel-item { padding: 6px 8px; border-radius: 4px; color: #949ba4; cursor: pointer; display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
-    .channel-item.active, .channel-item:hover { background: #35373c; color: #f2f3f5; }
+    .channel-item { padding: 6px 8px; border-radius: 4px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+    .channel-item.active, .channel-item:hover { background: rgba(255,255,255,0.05); color: var(--text-header); }
 
-    /* Профиль пользователя внизу сайдбара */
-    .user-profile-bar { height: 52px; background: #232428; padding: 0 8px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #1f2023; }
+    /* Профиль */
+    .user-profile-bar { height: 56px; background: var(--bg-servers); padding: 0 8px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); }
     .profile-info { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-    .profile-info:hover { opacity: 0.8; }
-    .profile-name { font-size: 13px; font-weight: 600; color: #f2f3f5; }
+    .profile-name-group { display: flex; flex-direction: column; }
+    .profile-name { font-size: 13px; font-weight: 600; color: var(--text-header); }
+    .profile-role { font-size: 10px; color: #5865f2; font-weight: bold; }
 
     /* Чат */
-    .chat-area { flex: 1; display: flex; flex-direction: column; background: #313338; }
-    .chat-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; padding: 0 16px; font-weight: bold; color: #f2f3f5; }
+    .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-main); }
+    .chat-header { height: 48px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-weight: bold; color: var(--text-header); background: var(--bg-header); }
+    
+    .header-tools { display: flex; align-items: center; gap: 12px; }
+    .search-box { background: var(--bg-input); border: none; padding: 4px 8px; border-radius: 4px; color: var(--text-main); outline: none; font-size: 13px; }
+    .theme-select { background: var(--bg-input); color: var(--text-main); border: none; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
+
+    /* Закрепленные сообщения */
+    .pinned-bar { display: none; background: rgba(88, 101, 242, 0.15); border-bottom: 1px solid #5865f2; padding: 6px 16px; font-size: 12px; color: var(--text-header); align-items: center; gap: 8px; }
+
     .messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-
-    .message { display: flex; gap: 16px; position: relative; }
+    .message { display: flex; flex-direction: column; position: relative; }
     .message:hover .action-btns { display: flex; }
+    .message.pinned { background: rgba(88, 101, 242, 0.05); border-left: 2px solid #5865f2; padding-left: 4px; }
 
+    .msg-main { display: flex; gap: 16px; }
+    .reply-quote { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; padding-left: 56px; }
+    
     .avatar-wrapper { position: relative; width: 40px; height: 40px; flex-shrink: 0; }
     .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; background-size: cover; background-position: center; }
-    .status-dot { position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-radius: 50%; background: #23a55a; border: 2px solid #313338; }
-    
+
     .msg-content { display: flex; flex-direction: column; flex: 1; }
     .msg-header { display: flex; align-items: baseline; gap: 8px; }
-    .msg-author { font-weight: 600; color: #f2f3f5; font-size: 15px; }
-    .msg-time { font-size: 11px; color: #949ba4; }
-    .msg-text { color: #dbdee1; font-size: 14px; margin-top: 4px; word-break: break-word; }
+    .msg-author { font-weight: 600; color: var(--text-header); font-size: 15px; }
+    .role-badge { font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: bold; text-transform: uppercase; background: #5865f2; color: white; }
+    .msg-time { font-size: 11px; color: var(--text-muted); }
+    .msg-text { color: var(--text-main); font-size: 14px; margin-top: 4px; word-break: break-word; }
 
-    /* Кнопки действия с сообщением */
-    .action-btns { display: none; position: absolute; right: 10px; top: -10px; background: #313338; border: 1px solid #2b2d31; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-    .action-btn { background: none; border: none; color: #b5bac1; padding: 4px 8px; font-size: 12px; cursor: pointer; }
-    .action-btn:hover { background: #35373c; color: #f2f3f5; }
-    .action-btn.delete:hover { background: #f23f43; color: white; }
+    /* Панель действий */
+    .action-btns { display: none; position: absolute; right: 10px; top: -10px; background: var(--bg-sidebar); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; z-index: 5; }
+    .action-btn { background: none; border: none; color: var(--text-muted); padding: 4px 8px; font-size: 12px; cursor: pointer; }
+    .action-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-header); }
 
-    .chat-image { max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 8px; display: block; }
-
-    /* Поле ввода + Эмодзи */
+    /* Поле ввода */
     .input-area { padding: 0 16px 24px 16px; position: relative; }
-    .input-wrapper { background: #383a40; border-radius: 8px; padding: 8px 16px; display: flex; align-items: center; gap: 10px; }
-    .input-wrapper input { flex: 1; background: transparent; border: none; outline: none; color: #dbdee1; font-size: 15px; }
-    .emoji-btn { background: none; border: none; font-size: 20px; cursor: pointer; opacity: 0.7; transition: 0.2s; }
-    .emoji-btn:hover { opacity: 1; transform: scale(1.1); }
+    .reply-bar { display: none; background: var(--bg-sidebar); padding: 6px 12px; border-radius: 8px 8px 0 0; font-size: 12px; color: var(--text-muted); justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+    .input-wrapper { background: var(--bg-input); border-radius: 8px; padding: 8px 16px; display: flex; align-items: center; gap: 10px; }
+    .reply-active .input-wrapper { border-radius: 0 0 8px 8px; }
+    .input-wrapper input { flex: 1; background: transparent; border: none; outline: none; color: var(--text-main); font-size: 15px; }
 
-    .emoji-picker { display: none; position: absolute; bottom: 70px; right: 16px; background: #2b2d31; border: 1px solid #1f2023; border-radius: 8px; padding: 10px; gap: 8px; grid-template-columns: repeat(5, 1fr); box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 10; }
-    .emoji-picker span { font-size: 22px; cursor: pointer; text-align: center; transition: 0.1s; }
-    .emoji-picker span:hover { transform: scale(1.2); }
+    .emoji-picker { display: none; position: absolute; bottom: 70px; right: 16px; background: var(--bg-sidebar); border: 1px solid var(--border); border-radius: 8px; padding: 10px; gap: 8px; grid-template-columns: repeat(5, 1fr); box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 10; }
+    .emoji-picker span { font-size: 22px; cursor: pointer; text-align: center; }
 
-    /* Список участников */
-    .members-sidebar { width: 200px; background: #2b2d31; padding: 16px 8px; display: flex; flex-direction: column; gap: 8px; border-left: 1px solid #1f2023; }
-    .members-title { font-size: 12px; font-weight: bold; color: #949ba4; text-transform: uppercase; padding-left: 8px; margin-bottom: 4px; }
-    .member-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; color: #949ba4; }
-    .member-item:hover { background: #35373c; color: #f2f3f5; }
-    .member-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white; position: relative; background-size: cover; background-position: center; }
+    /* Участники */
+    .members-sidebar { width: 200px; background: var(--bg-sidebar); padding: 16px 8px; display: flex; flex-direction: column; gap: 8px; border-left: 1px solid var(--border); }
+    .members-title { font-size: 12px; font-weight: bold; color: var(--text-muted); text-transform: uppercase; padding-left: 8px; }
+    .member-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; color: var(--text-muted); }
+    .member-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white; background-size: cover; background-position: center; }
   </style>
 </head>
 <body>
@@ -83,52 +125,68 @@
   <div class="channels-sidebar">
     <div class="server-header">
       <span>Idinakhuykord</span>
-      <button class="add-channel-btn" onclick="createNewChannel()" title="Создать канал">+</button>
+      <button class="add-btn" id="add-channel-btn" onclick="createNewChannel()" title="Создать канал">+</button>
     </div>
     <div class="channel-list" id="channel-list">
       <div class="channel-item active" onclick="switchChannel('general', this)"># общий</div>
       <div class="channel-item" onclick="switchChannel('memes', this)"># мемы</div>
-      <div class="channel-item" onclick="switchChannel('offtopic', this)"># флуд</div>
     </div>
     
     <div class="user-profile-bar">
-      <div class="profile-info" onclick="changeAvatar()" title="Нажми, чтобы загрузить аватарку с ПК">
+      <div class="profile-info" onclick="changeAvatar()">
         <div class="avatar-wrapper">
           <div class="avatar" id="my-avatar">?</div>
-          <div class="status-dot"></div>
         </div>
-        <span class="profile-name" id="my-name">Пользователь</span>
+        <div class="profile-name-group">
+          <span class="profile-name" id="my-name">Пользователь</span>
+          <span class="profile-role" id="my-role-badge">Участник</span>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="chat-area">
-    <div class="chat-header" id="current-channel-title"># общий</div>
+    <div class="chat-header">
+      <span id="current-channel-title"># общий</span>
+      <div class="header-tools">
+        <input type="text" class="search-box" id="search-input" placeholder="🔍 Поиск..." oninput="filterMessages()">
+        <select class="theme-select" onchange="changeTheme(this.value)">
+          <option value="dark">Тёмная</option>
+          <option value="amoled">AMOLED</option>
+          <option value="light">Светлая</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="pinned-bar" id="pinned-bar">
+      📌 <strong>Закреплено:</strong> <span id="pinned-text">...</span>
+    </div>
+
     <div class="messages" id="messages"></div>
 
-    <div class="input-area">
+    <div class="input-area" id="input-area-container">
+      <div class="reply-bar" id="reply-bar">
+        <span>Ответ <strong id="reply-target-user"></strong>: <span id="reply-target-text"></span></span>
+        <span style="cursor:pointer; color:#f23f43;" onclick="cancelReply()">✕</span>
+      </div>
+
       <div class="emoji-picker" id="emoji-picker">
         <span onclick="addEmoji('🔥')">🔥</span>
         <span onclick="addEmoji('😂')">😂</span>
         <span onclick="addEmoji('👍')">👍</span>
         <span onclick="addEmoji('😎')">😎</span>
         <span onclick="addEmoji('💀')">💀</span>
-        <span onclick="addEmoji('❤️')">❤️</span>
-        <span onclick="addEmoji('🎉')">🎉</span>
-        <span onclick="addEmoji('👀')">👀</span>
-        <span onclick="addEmoji('🚀')">🚀</span>
-        <span onclick="addEmoji('💩')">💩</span>
       </div>
 
       <form id="chat-form" class="input-wrapper">
-        <input type="text" id="msg-input" placeholder="Написать сообщение или вставить ссылку..." autocomplete="off">
-        <button type="button" class="emoji-btn" onclick="toggleEmojiPicker()">😊</button>
+        <input type="text" id="msg-input" placeholder="Написать сообщение..." autocomplete="off">
+        <button type="button" class="add-btn" onclick="toggleEmojiPicker()">😊</button>
       </form>
     </div>
   </div>
 
   <div class="members-sidebar">
-    <div class="members-title">Участники в сети</div>
+    <div class="members-title">Участники</div>
     <div id="members-list"></div>
   </div>
 
@@ -149,11 +207,22 @@
     const db = firebase.firestore();
 
     const username = prompt("Введите ваш никнейм:") || "Пользователь";
+    // 👑 Выбор роли для теста
+    const userRole = prompt("Выберите роль: Admin, Mod или User", "Admin") || "User";
+
     let avatarUrl = localStorage.getItem('user_avatar') || '';
     let currentChannel = "general";
     let unsubscribe = null;
+    let replyTarget = null;
+    let loadedMessagesCache = [];
 
     document.getElementById('my-name').innerText = username;
+    document.getElementById('my-role-badge').innerText = userRole;
+
+    // Скрываем кнопку создания каналов, если не админ
+    if (userRole !== "Admin") {
+      document.getElementById('add-channel-btn').style.display = 'none';
+    }
 
     const form = document.getElementById('chat-form');
     const input = document.getElementById('msg-input');
@@ -161,36 +230,29 @@
     const channelTitle = document.getElementById('current-channel-title');
     const membersList = document.getElementById('members-list');
     const emojiPicker = document.getElementById('emoji-picker');
-    const channelList = document.getElementById('channel-list');
+    const replyBar = document.getElementById('reply-bar');
+    const inputContainer = document.getElementById('input-area-container');
+    const pinnedBar = document.getElementById('pinned-bar');
 
     const activeUsers = new Map();
 
-    // Загрузка аватарки из файла с ПК/телефона
+    // Загрузка аватара с ПК
     const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-
-    function changeAvatar() {
-      fileInput.click();
-    }
-
+    fileInput.type = 'file'; fileInput.accept = 'image/*';
+    function changeAvatar() { fileInput.click(); }
     fileInput.onchange = (e) => {
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = new Image();
-          img.src = event.target.result;
+        reader.onload = (evt) => {
+          const img = new Image(); img.src = evt.target.result;
           img.onload = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = 80;
-            canvas.height = 80;
+            canvas.width = 80; canvas.height = 80;
             ctx.drawImage(img, 0, 0, 80, 80);
-            
             avatarUrl = canvas.toDataURL('image/jpeg', 0.8);
             localStorage.setItem('user_avatar', avatarUrl);
-            
             updateMyAvatarUI();
             loadMessages();
           };
@@ -201,62 +263,65 @@
 
     function getColorForUser(str) {
       let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-      }
+      for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
       return `hsl(${Math.abs(hash) % 360}, 60%, 50%)`;
     }
 
     function updateMyAvatarUI() {
-      const myAvatarEl = document.getElementById('my-avatar');
-      if (avatarUrl) {
-        myAvatarEl.style.backgroundImage = `url('${avatarUrl}')`;
-        myAvatarEl.innerText = '';
-      } else {
-        myAvatarEl.style.backgroundImage = 'none';
-        myAvatarEl.style.backgroundColor = getColorForUser(username);
-        myAvatarEl.innerText = username[0].toUpperCase();
-      }
+      const el = document.getElementById('my-avatar');
+      if (avatarUrl) { el.style.backgroundImage = `url('${avatarUrl}')`; el.innerText = ''; } 
+      else { el.style.backgroundImage = 'none'; el.style.backgroundColor = getColorForUser(username); el.innerText = username[0].toUpperCase(); }
     }
-
     updateMyAvatarUI();
 
-    function toggleEmojiPicker() {
-      emojiPicker.style.display = emojiPicker.style.display === 'grid' ? 'none' : 'grid';
+    // 🎨 Переключение темы
+    function changeTheme(theme) {
+      document.body.className = '';
+      if (theme === 'amoled') document.body.classList.add('amoled-theme');
+      if (theme === 'light') document.body.classList.add('light-theme');
     }
 
-    function addEmoji(emoji) {
-      input.value += emoji;
+    function toggleEmojiPicker() { emojiPicker.style.display = emojiPicker.style.display === 'grid' ? 'none' : 'grid'; }
+    function addEmoji(e) { input.value += e; input.focus(); emojiPicker.style.display = 'none'; }
+
+    // ↩️ Ответы
+    function setReply(author, text) {
+      replyTarget = { author, text };
+      document.getElementById('reply-target-user').innerText = author;
+      document.getElementById('reply-target-text').innerText = text.length > 30 ? text.substring(0, 30) + '...' : text;
+      replyBar.style.display = 'flex';
+      inputContainer.classList.add('reply-active');
       input.focus();
-      emojiPicker.style.display = 'none';
+    }
+    function cancelReply() { replyTarget = null; replyBar.style.display = 'none'; inputContainer.classList.remove('reply-active'); }
+
+    // 📌 Закрепление сообщений
+    function togglePin(docId, currentPinnedState) {
+      db.collection("channels").doc(currentChannel).collection("messages").doc(docId).update({
+        isPinned: !currentPinnedState
+      });
     }
 
     function createNewChannel() {
-      const name = prompt("Введите название нового канала:");
+      if (userRole !== "Admin") return alert("Только Админ может создавать каналы!");
+      const name = prompt("Название нового канала:");
       if (name) {
-        const channelId = name.toLowerCase().replace(/\s+/g, '-');
-        const newDiv = document.createElement('div');
-        newDiv.className = 'channel-item';
-        newDiv.innerText = `# ${channelId}`;
-        newDiv.onclick = function() { switchChannel(channelId, this); };
-        channelList.appendChild(newDiv);
-        switchChannel(channelId, newDiv);
+        const id = name.toLowerCase().replace(/\s+/g, '-');
+        const div = document.createElement('div');
+        div.className = 'channel-item'; div.innerText = `# ${id}`;
+        div.onclick = function() { switchChannel(id, this); };
+        document.getElementById('channel-list').appendChild(div);
+        switchChannel(id, div);
       }
     }
 
-    function switchChannel(channelId, element) {
-      currentChannel = channelId;
-      channelTitle.innerText = element.innerText;
-      
-      document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
-      element.classList.add('active');
-
-      input.placeholder = `Написать в ${element.innerText}`;
+    function switchChannel(id, el) {
+      currentChannel = id;
+      channelTitle.innerText = el.innerText;
+      document.querySelectorAll('.channel-item').forEach(e => e.classList.remove('active'));
+      el.classList.add('active');
+      cancelReply();
       loadMessages();
-    }
-
-    function isImageUrl(url) {
-      return (url.match(/\.(jpeg|jpg|gif|png|webp)$/) != null) || url.startsWith('https://images.unsplash.com/');
     }
 
     function deleteMessage(docId) {
@@ -265,51 +330,27 @@
       }
     }
 
-    function editMessage(docId, oldText) {
-      const newText = prompt("Редактировать сообщение:", oldText);
-      if (newText && newText !== oldText) {
-        db.collection("channels").doc(currentChannel).collection("messages").doc(docId).update({
-          text: newText,
-          isEdited: true
-        });
-      }
-    }
-
-    function updateMembersList() {
-      membersList.innerHTML = '';
-      activeUsers.forEach((userAvatar, userName) => {
-        const bg = getColorForUser(userName);
-        const letter = userName[0].toUpperCase();
-        const avatarStyle = userAvatar 
-          ? `background-image: url('${userAvatar}')` 
-          : `background-color: ${bg}`;
-        const letterContent = userAvatar ? '' : letter;
-
-        const memberDiv = document.createElement('div');
-        memberDiv.className = 'member-item';
-        memberDiv.innerHTML = `
-          <div class="member-avatar" style="${avatarStyle}">
-            ${letterContent}
-            <div class="status-dot"></div>
-          </div>
-          <span>${userName}</span>
-        `;
-        membersList.appendChild(memberDiv);
-      });
+    // 🔍 Фильтрация поиска
+    function filterMessages() {
+      const query = document.getElementById('search-input').value.toLowerCase();
+      const filtered = loadedMessagesCache.filter(m => m.text.toLowerCase().includes(query));
+      renderMessages(filtered);
     }
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const text = input.value.trim();
       if (text) {
-        db.collection("channels").doc(currentChannel).collection("messages").add({
+        const data = {
           user: username,
+          role: userRole,
           userAvatar: avatarUrl,
           text: text,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        input.value = '';
-        emojiPicker.style.display = 'none';
+        };
+        if (replyTarget) data.reply = replyTarget;
+        db.collection("channels").doc(currentChannel).collection("messages").add(data);
+        input.value = ''; cancelReply();
       }
     });
 
@@ -319,63 +360,86 @@
       unsubscribe = db.collection("channels").doc(currentChannel).collection("messages")
         .orderBy("createdAt", "asc")
         .onSnapshot((snapshot) => {
-          messagesContainer.innerHTML = '';
+          loadedMessagesCache = [];
+          pinnedBar.style.display = 'none';
 
           snapshot.forEach((doc) => {
             const data = doc.data();
-            const docId = doc.id;
-
-            if (data.text) {
-              if (data.user) activeUsers.set(data.user, data.userAvatar || '');
-
-              const timeStr = data.createdAt 
-                ? new Date(data.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : 'только что';
-
-              const editedTag = data.isEdited ? ' <span style="font-size:10px; color:#949ba4;">(изменено)</span>' : '';
-              const bg = getColorForUser(data.user || '');
-              const firstLetter = data.user ? data.user[0].toUpperCase() : '?';
-
-              const avatarStyle = data.userAvatar 
-                ? `background-image: url('${data.userAvatar}')` 
-                : `background-color: ${bg}`;
-              const avatarInner = data.userAvatar ? '' : firstLetter;
-
-              let messageBody = `<div class="msg-text">${data.text}${editedTag}</div>`;
-              if (isImageUrl(data.text)) {
-                messageBody += `<img src="${data.text}" class="chat-image" alt="Изображение">`;
-              }
-
-              const actionBtns = (data.user === username)
-                ? `<div class="action-btns">
-                    <button class="action-btn" onclick="editMessage('${docId}', '${data.text.replace(/'/g, "\\'")}')">✏️ Edit</button>
-                    <button class="action-btn delete" onclick="deleteMessage('${docId}')">🗑️ Delete</button>
-                   </div>`
-                : '';
-
-              const msgDiv = document.createElement('div');
-              msgDiv.className = 'message';
-              msgDiv.innerHTML = `
-                <div class="avatar-wrapper">
-                  <div class="avatar" style="${avatarStyle}">${avatarInner}</div>
-                  <div class="status-dot"></div>
-                </div>
-                <div class="msg-content">
-                  <div class="msg-header">
-                    <span class="msg-author">${data.user}</span>
-                    <span class="msg-time">${timeStr}</span>
-                  </div>
-                  ${messageBody}
-                </div>
-                ${actionBtns}
-              `;
-              messagesContainer.appendChild(msgDiv);
+            data.id = doc.id;
+            loadedMessagesCache.push(data);
+            if (data.user) activeUsers.set(data.user, { avatar: data.userAvatar || '', role: data.role || 'User' });
+            if (data.isPinned) {
+              pinnedBar.style.display = 'flex';
+              document.getElementById('pinned-text').innerText = `${data.user}: ${data.text}`;
             }
           });
 
+          renderMessages(loadedMessagesCache);
           updateMembersList();
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
         });
+    }
+
+    function renderMessages(list) {
+      messagesContainer.innerHTML = '';
+      list.forEach((data) => {
+        const docId = data.id;
+        const timeStr = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'только что';
+        const bg = getColorForUser(data.user || '');
+        const firstLetter = data.user ? data.user[0].toUpperCase() : '?';
+
+        const avatarStyle = data.userAvatar ? `background-image: url('${data.userAvatar}')` : `background-color: ${bg}`;
+        const avatarInner = data.userAvatar ? '' : firstLetter;
+
+        let replyHTML = data.reply ? `<div class="reply-quote"><span>@${data.reply.author}</span>: ${data.reply.text}</div>` : '';
+        const safeText = data.text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+        // Права на удаление: Свое сообщение ИЛИ Модератор / Админ
+        const canDelete = (data.user === username) || (userRole === "Admin" || userRole === "Mod");
+
+        let actionBtns = `<div class="action-btns">
+          <button class="action-btn" onclick="setReply('${data.user}', '${safeText}')">↩️</button>
+          <button class="action-btn" onclick="togglePin('${docId}', ${!!data.isPinned})">📌</button>`;
+        if (canDelete) {
+          actionBtns += `<button class="action-btn" onclick="deleteMessage('${docId}')">🗑️</button>`;
+        }
+        actionBtns += `</div>`;
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${data.isPinned ? 'pinned' : ''}`;
+        msgDiv.innerHTML = `
+          ${replyHTML}
+          <div class="msg-main">
+            <div class="avatar-wrapper">
+              <div class="avatar" style="${avatarStyle}">${avatarInner}</div>
+            </div>
+            <div class="msg-content">
+              <div class="msg-header">
+                <span class="msg-author">${data.user}</span>
+                <span class="role-badge">${data.role || 'User'}</span>
+                <span class="msg-time">${timeStr}</span>
+              </div>
+              <div class="msg-text">${data.text}</div>
+            </div>
+          </div>
+          ${actionBtns}
+        `;
+        messagesContainer.appendChild(msgDiv);
+      });
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function updateMembersList() {
+      membersList.innerHTML = '';
+      activeUsers.forEach((info, userName) => {
+        const bg = getColorForUser(userName);
+        const letter = userName[0].toUpperCase();
+        const avatarStyle = info.avatar ? `background-image: url('${info.avatar}')` : `background-color: ${bg}`;
+        const letterContent = info.avatar ? '' : letter;
+        const div = document.createElement('div');
+        div.className = 'member-item';
+        div.innerHTML = `<div class="member-avatar" style="${avatarStyle}">${letterContent}</div><span>${userName}</span>`;
+        membersList.appendChild(div);
+      });
     }
 
     loadMessages();
