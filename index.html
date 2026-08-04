@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Discord Web Clone</title>
+  <title>Idinakhuykord Web</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'gg sans', 'Noto Sans', sans-serif; }
     body { background-color: #313338; color: #dbdee1; display: flex; height: 100vh; overflow: hidden; }
 
-    /* Панель серверов (слева) */
+    /* Панель серверов */
     .servers-sidebar { width: 72px; background: #1e1f22; display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 8px; }
     .server-icon { width: 48px; height: 48px; background: #5865f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; cursor: pointer; transition: 0.2s; }
     .server-icon:hover { border-radius: 16px; background: #4752c4; }
@@ -17,18 +17,20 @@
     .channels-sidebar { width: 240px; background: #2b2d31; display: flex; flex-direction: column; }
     .server-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; padding: 0 16px; font-weight: bold; color: #f2f3f5; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
     .channel-list { padding: 8px; }
-    .channel-item { padding: 6px 8px; border-radius: 4px; color: #949ba4; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .channel-item { padding: 6px 8px; border-radius: 4px; color: #949ba4; cursor: pointer; display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
     .channel-item.active, .channel-item:hover { background: #35373c; color: #f2f3f5; }
 
-    /* Область чата */
+    /* Чат */
     .chat-area { flex: 1; display: flex; flex-direction: column; background: #313338; }
     .chat-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; padding: 0 16px; font-weight: bold; color: #f2f3f5; }
     .messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
 
     .message { display: flex; gap: 16px; }
-    .avatar { width: 40px; height: 40px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+    .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; }
     .msg-content { display: flex; flex-direction: column; }
+    .msg-header { display: flex; align-items: baseline; gap: 8px; }
     .msg-author { font-weight: 600; color: #f2f3f5; font-size: 15px; }
+    .msg-time { font-size: 11px; color: #949ba4; }
     .msg-text { color: #dbdee1; font-size: 14px; margin-top: 4px; word-break: break-word; }
 
     /* Поле ввода */
@@ -44,19 +46,21 @@
   </div>
 
   <div class="channels-sidebar">
-    <div class="server-header">Мой Сервер</div>
+    <div class="server-header">Idinakhuykord</div>
     <div class="channel-list">
-      <div class="channel-item active"># основной-чат</div>
+      <div class="channel-item active" onclick="switchChannel('general', this)"># общий</div>
+      <div class="channel-item" onclick="switchChannel('memes', this)"># мемы</div>
+      <div class="channel-item" onclick="switchChannel('offtopic', this)"># флуд</div>
     </div>
   </div>
 
   <div class="chat-area">
-    <div class="chat-header"># основной-чат</div>
+    <div class="chat-header" id="current-channel-title"># общий</div>
     <div class="messages" id="messages"></div>
 
     <div class="input-area">
       <form id="chat-form" class="input-wrapper">
-        <input type="text" id="msg-input" placeholder="Написать в #основной-чат" autocomplete="off">
+        <input type="text" id="msg-input" placeholder="Написать сообщение..." autocomplete="off">
       </form>
     </div>
   </div>
@@ -65,7 +69,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
   <script>
-    // Вставь сюда данные из консоли Firebase
+    // ⚠️ Вставь свои данные Firebase ниже
     const firebaseConfig = {
       apiKey: "ТВОЙ_API_KEY",
       authDomain: "ТВОЙ_PROJECT.firebaseapp.com",
@@ -78,16 +82,42 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const username = prompt("Введите ваше имя (Никнейм):") || "Пользователь";
+    const username = prompt("Введите ваш никнейм:") || "Пользователь";
+    let currentChannel = "general";
+    let unsubscribe = null;
+
     const form = document.getElementById('chat-form');
     const input = document.getElementById('msg-input');
     const messagesContainer = document.getElementById('messages');
+    const channelTitle = document.getElementById('current-channel-title');
 
+    // Генерация постоянного цвета для ника
+    function getColorForUser(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return `hsl(${Math.abs(hash) % 360}, 60%, 50%)`;
+    }
+
+    // Переключение каналов
+    function switchChannel(channelId, element) {
+      currentChannel = channelId;
+      channelTitle.innerText = element.innerText;
+      
+      document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+      element.classList.add('active');
+
+      input.placeholder = `Написать в ${element.innerText}`;
+      loadMessages();
+    }
+
+    // Отправка
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const text = input.value.trim();
       if (text) {
-        db.collection("discord_messages").add({
+        db.collection("channels").doc(currentChannel).collection("messages").add({
           user: username,
           text: text,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -96,28 +126,45 @@
       }
     });
 
-    db.collection("discord_messages")
-      .orderBy("createdAt", "asc")
-      .onSnapshot((snapshot) => {
-        messagesContainer.innerHTML = '';
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.text) {
-            const firstLetter = data.user ? data.user[0].toUpperCase() : '?';
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'message';
-            msgDiv.innerHTML = `
-              <div class="avatar">${firstLetter}</div>
-              <div class="msg-content">
-                <div class="msg-author">${data.user}</div>
-                <div class="msg-text">${data.text}</div>
-              </div>
-            `;
-            messagesContainer.appendChild(msgDiv);
-          }
+    // Загрузка сообщений канала
+    function loadMessages() {
+      if (unsubscribe) unsubscribe();
+
+      unsubscribe = db.collection("channels").doc(currentChannel).collection("messages")
+        .orderBy("createdAt", "asc")
+        .onSnapshot((snapshot) => {
+          messagesContainer.innerHTML = '';
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.text) {
+              const timeStr = data.createdAt 
+                ? new Date(data.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : 'только что';
+
+              const bg = getColorForUser(data.user || '');
+              const firstLetter = data.user ? data.user[0].toUpperCase() : '?';
+
+              const msgDiv = document.createElement('div');
+              msgDiv.className = 'message';
+              msgDiv.innerHTML = `
+                <div class="avatar" style="background-color: ${bg}">${firstLetter}</div>
+                <div class="msg-content">
+                  <div class="msg-header">
+                    <span class="msg-author">${data.user}</span>
+                    <span class="msg-time">${timeStr}</span>
+                  </div>
+                  <div class="msg-text">${data.text}</div>
+                </div>
+              `;
+              messagesContainer.appendChild(msgDiv);
+            }
+          });
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
         });
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      });
+    }
+
+    // Старт
+    loadMessages();
   </script>
 </body>
 </html>
