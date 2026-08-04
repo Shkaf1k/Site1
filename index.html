@@ -16,7 +16,7 @@
     /* Панель каналов */
     .channels-sidebar { width: 240px; background: #2b2d31; display: flex; flex-direction: column; }
     .server-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; padding: 0 16px; font-weight: bold; color: #f2f3f5; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-    .channel-list { padding: 8px; }
+    .channel-list { padding: 8px; flex: 1; }
     .channel-item { padding: 6px 8px; border-radius: 4px; color: #949ba4; cursor: pointer; display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
     .channel-item.active, .channel-item:hover { background: #35373c; color: #f2f3f5; }
 
@@ -33,13 +33,19 @@
     .msg-time { font-size: 11px; color: #949ba4; }
     .msg-text { color: #dbdee1; font-size: 14px; margin-top: 4px; word-break: break-word; }
 
-    /* Медиаконтент в чате */
     .chat-image { max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 8px; display: block; }
 
     /* Поле ввода */
     .input-area { padding: 0 16px 24px 16px; }
     .input-wrapper { background: #383a40; border-radius: 8px; padding: 11px 16px; display: flex; align-items: center; }
     .input-wrapper input { width: 100%; background: transparent; border: none; outline: none; color: #dbdee1; font-size: 15px; }
+
+    /* Список участников (справа) */
+    .members-sidebar { width: 200px; background: #2b2d31; padding: 16px 8px; display: flex; flex-direction: column; gap: 8px; border-left: 1px solid #1f2023; }
+    .members-title { font-size: 12px; font-weight: bold; color: #949ba4; text-transform: uppercase; padding-left: 8px; margin-bottom: 4px; }
+    .member-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; color: #949ba4; }
+    .member-item:hover { background: #35373c; color: #f2f3f5; }
+    .member-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white; }
   </style>
 </head>
 <body>
@@ -63,16 +69,20 @@
 
     <div class="input-area">
       <form id="chat-form" class="input-wrapper">
-        <input type="text" id="msg-input" placeholder="Написать сообщение или вставить ссылку на картинку..." autocomplete="off">
+        <input type="text" id="msg-input" placeholder="Написать сообщение или вставить ссылку..." autocomplete="off">
       </form>
     </div>
+  </div>
+
+  <div class="members-sidebar">
+    <div class="members-title">Участники</div>
+    <div id="members-list"></div>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
   <script>
-    // ⚠️ Вставь свои данные Firebase ниже
     const firebaseConfig = {
       apiKey: "ТВОЙ_API_KEY",
       authDomain: "ТВОЙ_PROJECT.firebaseapp.com",
@@ -88,11 +98,18 @@
     const username = prompt("Введите ваш никнейм:") || "Пользователь";
     let currentChannel = "general";
     let unsubscribe = null;
+    let isFirstLoad = true;
+
+    // Звук уведомления Discord
+    const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
     const form = document.getElementById('chat-form');
     const input = document.getElementById('msg-input');
     const messagesContainer = document.getElementById('messages');
     const channelTitle = document.getElementById('current-channel-title');
+    const membersList = document.getElementById('members-list');
+
+    const activeUsers = new Set();
 
     function getColorForUser(str) {
       let hash = 0;
@@ -110,12 +127,27 @@
       element.classList.add('active');
 
       input.placeholder = `Написать в ${element.innerText}`;
+      isFirstLoad = true;
       loadMessages();
     }
 
-    // Проверка, является ли текст ссылкой на картинку
     function isImageUrl(url) {
-      return(url.match(/\.(jpeg|jpg|gif|png|webp)$/) != null) || url.startsWith('https://images.unsplash.com/');
+      return (url.match(/\.(jpeg|jpg|gif|png|webp)$/) != null) || url.startsWith('https://images.unsplash.com/');
+    }
+
+    function updateMembersList() {
+      membersList.innerHTML = '';
+      activeUsers.forEach(user => {
+        const bg = getColorForUser(user);
+        const letter = user[0].toUpperCase();
+        const memberDiv = document.createElement('div');
+        memberDiv.className = 'member-item';
+        memberDiv.innerHTML = `
+          <div class="member-avatar" style="background-color: ${bg}">${letter}</div>
+          <span>${user}</span>
+        `;
+        membersList.appendChild(memberDiv);
+      });
     }
 
     form.addEventListener('submit', (e) => {
@@ -138,9 +170,13 @@
         .orderBy("createdAt", "asc")
         .onSnapshot((snapshot) => {
           messagesContainer.innerHTML = '';
+          let hasNewMessage = false;
+
           snapshot.forEach((doc) => {
             const data = doc.data();
             if (data.text) {
+              if (data.user) activeUsers.add(data.user);
+
               const timeStr = data.createdAt 
                 ? new Date(data.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : 'только что';
@@ -148,7 +184,6 @@
               const bg = getColorForUser(data.user || '');
               const firstLetter = data.user ? data.user[0].toUpperCase() : '?';
 
-              // Формирование содержимого (текст или картинка)
               let messageBody = `<div class="msg-text">${data.text}</div>`;
               if (isImageUrl(data.text)) {
                 messageBody += `<img src="${data.text}" class="chat-image" alt="Изображение">`;
@@ -167,8 +202,17 @@
                 </div>
               `;
               messagesContainer.appendChild(msgDiv);
+              hasNewMessage = true;
             }
           });
+
+          // Воспроизводим звук при новом сообщении (если это не первая загрузка)
+          if (hasNewMessage && !isFirstLoad) {
+            notificationSound.play().catch(() => {});
+          }
+
+          isFirstLoad = false;
+          updateMembersList();
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
         });
     }
