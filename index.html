@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Idinakhuykord Web Ultimate</title>
+  <title>Idinakhuykord Web Mega Edition</title>
   <style>
-    /* Переменные тем оформления */
     :root {
       --bg-main: #313338;
       --bg-sidebar: #2b2d31;
@@ -54,26 +53,38 @@
     .server-header { height: 48px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-weight: bold; color: var(--text-header); }
     .add-btn { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; }
 
-    .channel-list { padding: 8px; flex: 1; overflow-y: auto; }
+    .channel-section-title { font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase; padding: 12px 8px 4px 8px; }
+    .channel-list { padding: 4px 8px; flex: 1; overflow-y: auto; }
     .channel-item { padding: 6px 8px; border-radius: 4px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
     .channel-item.active, .channel-item:hover { background: rgba(255,255,255,0.05); color: var(--text-header); }
+    .channel-item.voice { color: #23a55a; }
+
+    /* Голосовая панель */
+    .voice-status-bar { display: none; background: #2b2d31; padding: 8px; border-top: 1px solid var(--border); color: #23a55a; font-size: 12px; font-weight: bold; align-items: center; justify-content: space-between; }
+    .disconnect-btn { background: #f23f43; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
 
     /* Профиль */
-    .user-profile-bar { height: 56px; background: var(--bg-servers); padding: 0 8px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); }
+    .user-profile-bar { height: 64px; background: var(--bg-servers); padding: 0 8px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); }
     .profile-info { display: flex; align-items: center; gap: 8px; cursor: pointer; }
     .profile-name-group { display: flex; flex-direction: column; }
     .profile-name { font-size: 13px; font-weight: 600; color: var(--text-header); }
-    .profile-role { font-size: 10px; color: #5865f2; font-weight: bold; }
+    .profile-custom-status { font-size: 10px; color: var(--text-muted); }
+
+    /* Статусы */
+    .status-badge { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--bg-sidebar); position: absolute; bottom: -2px; right: -2px; }
+    .status-online { background-color: #23a55a; }
+    .status-idle { background-color: #f0b232; }
+    .status-dnd { background-color: #f23f43; }
+    .status-offline { background-color: #80848e; }
 
     /* Чат */
     .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-main); }
     .chat-header { height: 48px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-weight: bold; color: var(--text-header); background: var(--bg-header); }
     
-    .header-tools { display: flex; align-items: center; gap: 12px; }
+    .header-tools { display: flex; align-items: center; gap: 8px; }
     .search-box { background: var(--bg-input); border: none; padding: 4px 8px; border-radius: 4px; color: var(--text-main); outline: none; font-size: 13px; }
-    .theme-select { background: var(--bg-input); color: var(--text-main); border: none; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
+    .theme-select, .status-select { background: var(--bg-input); color: var(--text-main); border: none; padding: 4px 6px; border-radius: 4px; cursor: pointer; font-size: 12px; }
 
-    /* Закрепленные сообщения */
     .pinned-bar { display: none; background: rgba(88, 101, 242, 0.15); border-bottom: 1px solid #5865f2; padding: 6px 16px; font-size: 12px; color: var(--text-header); align-items: center; gap: 8px; }
 
     .messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
@@ -94,12 +105,10 @@
     .msg-time { font-size: 11px; color: var(--text-muted); }
     .msg-text { color: var(--text-main); font-size: 14px; margin-top: 4px; word-break: break-word; }
 
-    /* Панель действий */
     .action-btns { display: none; position: absolute; right: 10px; top: -10px; background: var(--bg-sidebar); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; z-index: 5; }
     .action-btn { background: none; border: none; color: var(--text-muted); padding: 4px 8px; font-size: 12px; cursor: pointer; }
     .action-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-header); }
 
-    /* Поле ввода */
     .input-area { padding: 0 16px 24px 16px; position: relative; }
     .reply-bar { display: none; background: var(--bg-sidebar); padding: 6px 12px; border-radius: 8px 8px 0 0; font-size: 12px; color: var(--text-muted); justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
     .input-wrapper { background: var(--bg-input); border-radius: 8px; padding: 8px 16px; display: flex; align-items: center; gap: 10px; }
@@ -110,36 +119,57 @@
     .emoji-picker span { font-size: 22px; cursor: pointer; text-align: center; }
 
     /* Участники */
-    .members-sidebar { width: 200px; background: var(--bg-sidebar); padding: 16px 8px; display: flex; flex-direction: column; gap: 8px; border-left: 1px solid var(--border); }
+    .members-sidebar { width: 220px; background: var(--bg-sidebar); padding: 16px 8px; display: flex; flex-direction: column; gap: 8px; border-left: 1px solid var(--border); }
     .members-title { font-size: 12px; font-weight: bold; color: var(--text-muted); text-transform: uppercase; padding-left: 8px; }
-    .member-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; color: var(--text-muted); }
-    .member-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white; background-size: cover; background-position: center; }
+    .member-item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 4px; color: var(--text-muted); cursor: pointer; }
+    .member-item:hover { background: rgba(255,255,255,0.05); color: var(--text-header); }
+    .member-details { display: flex; flex-direction: column; }
+    .member-name { font-size: 13px; font-weight: 600; color: var(--text-header); }
+    .member-status-text { font-size: 10px; color: var(--text-muted); }
   </style>
 </head>
 <body>
 
   <div class="servers-sidebar">
-    <div class="server-icon">DC</div>
+    <div class="server-icon" onclick="openServerChat()" title="Главный сервер">DC</div>
   </div>
 
   <div class="channels-sidebar">
     <div class="server-header">
-      <span>Idinakhuykord</span>
+      <span id="sidebar-header-title">Idinakhuykord</span>
       <button class="add-btn" id="add-channel-btn" onclick="createNewChannel()" title="Создать канал">+</button>
     </div>
-    <div class="channel-list" id="channel-list">
-      <div class="channel-item active" onclick="switchChannel('general', this)"># общий</div>
-      <div class="channel-item" onclick="switchChannel('memes', this)"># мемы</div>
-    </div>
     
+    <div class="channel-list" id="channel-container">
+      <div class="channel-section-title">Текстовые каналы</div>
+      <div class="channel-list-group" id="text-channels">
+        <div class="channel-item active" onclick="switchChannel('general', this, false)"># общий</div>
+        <div class="channel-item" onclick="switchChannel('memes', this, false)"># мемы</div>
+      </div>
+
+      <div class="channel-section-title">Голосовые каналы</div>
+      <div class="channel-list-group" id="voice-channels">
+        <div class="channel-item voice" onclick="joinVoiceChannel('General Voice', this)">🔊 Гостиная</div>
+      </div>
+
+      <div class="channel-section-title" id="dm-section-title" style="display:none;">Личные сообщения</div>
+      <div class="channel-list-group" id="dm-channels"></div>
+    </div>
+
+    <div class="voice-status-bar" id="voice-status-bar">
+      <span>🔊 <span id="connected-voice-name">Канал</span></span>
+      <button class="disconnect-btn" onclick="leaveVoiceChannel()">Отключиться</button>
+    </div>
+
     <div class="user-profile-bar">
       <div class="profile-info" onclick="changeAvatar()">
         <div class="avatar-wrapper">
           <div class="avatar" id="my-avatar">?</div>
+          <div class="status-badge status-online" id="my-status-badge"></div>
         </div>
         <div class="profile-name-group">
           <span class="profile-name" id="my-name">Пользователь</span>
-          <span class="profile-role" id="my-role-badge">Участник</span>
+          <span class="profile-custom-status" id="my-custom-status-text" onclick="setCustomStatus(event)">Указать статус...</span>
         </div>
       </div>
     </div>
@@ -150,6 +180,14 @@
       <span id="current-channel-title"># общий</span>
       <div class="header-tools">
         <input type="text" class="search-box" id="search-input" placeholder="🔍 Поиск..." oninput="filterMessages()">
+        
+        <select class="status-select" onchange="changeUserStatus(this.value)">
+          <option value="online">🟢 В сети</option>
+          <option value="idle">🌙 Не активен</option>
+          <option value="dnd">🔴 Не беспокоить</option>
+          <option value="offline">⚪ Невидимый</option>
+        </select>
+
         <select class="theme-select" onchange="changeTheme(this.value)">
           <option value="dark">Тёмная</option>
           <option value="amoled">AMOLED</option>
@@ -192,6 +230,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
   <script>
     const firebaseConfig = {
@@ -207,22 +246,27 @@
     const db = firebase.firestore();
 
     const username = prompt("Введите ваш никнейм:") || "Пользователь";
-    // 👑 Выбор роли для теста
     const userRole = prompt("Выберите роль: Admin, Mod или User", "Admin") || "User";
 
     let avatarUrl = localStorage.getItem('user_avatar') || '';
     let currentChannel = "general";
+    let isDirectMessage = false;
+    let targetDmUser = null;
+    let currentStatus = "online";
+    let customStatusText = "";
+
     let unsubscribe = null;
     let replyTarget = null;
     let loadedMessagesCache = [];
+    const activeUsers = new Map();
+
+    // Запрос на Push-уведомления
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
 
     document.getElementById('my-name').innerText = username;
-    document.getElementById('my-role-badge').innerText = userRole;
-
-    // Скрываем кнопку создания каналов, если не админ
-    if (userRole !== "Admin") {
-      document.getElementById('add-channel-btn').style.display = 'none';
-    }
+    if (userRole !== "Admin") document.getElementById('add-channel-btn').style.display = 'none';
 
     const form = document.getElementById('chat-form');
     const input = document.getElementById('msg-input');
@@ -234,9 +278,64 @@
     const inputContainer = document.getElementById('input-area-container');
     const pinnedBar = document.getElementById('pinned-bar');
 
-    const activeUsers = new Map();
+    // 🔊 Звук через Web Audio API (генерация тона без скачивания MP3)
+    function playNotificationSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+      } catch(e) {}
+    }
 
-    // Загрузка аватара с ПК
+    // 🔔 Push Уведомления
+    function triggerPushNotification(author, text) {
+      if (document.hidden && Notification.permission === "granted") {
+        new Notification(`Сообщение от ${author}`, {
+          body: text,
+          icon: 'https://cdn-icons-png.flaticon.com/512/906/906361.png'
+        });
+      }
+    }
+
+    // 🟢 Статусы
+    function changeUserStatus(val) {
+      currentStatus = val;
+      const badge = document.getElementById('my-status-badge');
+      badge.className = `status-badge status-${val}`;
+      updateUserPresence();
+    }
+
+    function setCustomStatus(e) {
+      e.stopPropagation();
+      const text = prompt("Кастомный статус (например: Играет в CS2):", customStatusText);
+      if (text !== null) {
+        customStatusText = text;
+        document.getElementById('my-custom-status-text').innerText = text || "Указать статус...";
+        updateUserPresence();
+      }
+    }
+
+    function updateUserPresence() {
+      db.collection("users").doc(username).set({
+        user: username,
+        role: userRole,
+        avatar: avatarUrl,
+        status: currentStatus,
+        customStatus: customStatusText,
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
+
+    // Загрузка файла аватара
     const fileInput = document.createElement('input');
     fileInput.type = 'file'; fileInput.accept = 'image/*';
     function changeAvatar() { fileInput.click(); }
@@ -254,6 +353,7 @@
             avatarUrl = canvas.toDataURL('image/jpeg', 0.8);
             localStorage.setItem('user_avatar', avatarUrl);
             updateMyAvatarUI();
+            updateUserPresence();
             loadMessages();
           };
         };
@@ -273,8 +373,8 @@
       else { el.style.backgroundImage = 'none'; el.style.backgroundColor = getColorForUser(username); el.innerText = username[0].toUpperCase(); }
     }
     updateMyAvatarUI();
+    updateUserPresence();
 
-    // 🎨 Переключение темы
     function changeTheme(theme) {
       document.body.className = '';
       if (theme === 'amoled') document.body.classList.add('amoled-theme');
@@ -284,7 +384,6 @@
     function toggleEmojiPicker() { emojiPicker.style.display = emojiPicker.style.display === 'grid' ? 'none' : 'grid'; }
     function addEmoji(e) { input.value += e; input.focus(); emojiPicker.style.display = 'none'; }
 
-    // ↩️ Ответы
     function setReply(author, text) {
       replyTarget = { author, text };
       document.getElementById('reply-target-user').innerText = author;
@@ -295,11 +394,45 @@
     }
     function cancelReply() { replyTarget = null; replyBar.style.display = 'none'; inputContainer.classList.remove('reply-active'); }
 
-    // 📌 Закрепление сообщений
     function togglePin(docId, currentPinnedState) {
-      db.collection("channels").doc(currentChannel).collection("messages").doc(docId).update({
-        isPinned: !currentPinnedState
-      });
+      getCollectionRef().doc(docId).update({ isPinned: !currentPinnedState });
+    }
+
+    // 💬 Личные Сообщения (ЛС / DM)
+    function openDM(targetUser) {
+      if (targetUser === username) return;
+      isDirectMessage = true;
+      targetDmUser = targetUser;
+      
+      // Генерируем уникальный ID чата для двух людей
+      const dmId = [username, targetUser].sort().join('_DM_');
+      currentChannel = dmId;
+
+      channelTitle.innerText = `💬 ЛС с ${targetUser}`;
+
+      // Добавляем в UI список ЛС
+      const dmContainer = document.getElementById('dm-channels');
+      document.getElementById('dm-section-title').style.display = 'block';
+
+      if (!document.getElementById(`dm-item-${targetUser}`)) {
+        const div = document.createElement('div');
+        div.id = `dm-item-${targetUser}`;
+        div.className = 'channel-item active';
+        div.innerText = `@ ${targetUser}`;
+        div.onclick = function() { switchChannel(dmId, this, true, targetUser); };
+        dmContainer.appendChild(div);
+      }
+
+      document.querySelectorAll('.channel-item').forEach(e => e.classList.remove('active'));
+      const activeDmEl = document.getElementById(`dm-item-${targetUser}`);
+      if (activeDmEl) activeDmEl.classList.add('active');
+
+      cancelReply();
+      loadMessages();
+    }
+
+    function openServerChat() {
+      switchChannel('general', document.querySelector('#text-channels .channel-item'), false);
     }
 
     function createNewChannel() {
@@ -309,28 +442,39 @@
         const id = name.toLowerCase().replace(/\s+/g, '-');
         const div = document.createElement('div');
         div.className = 'channel-item'; div.innerText = `# ${id}`;
-        div.onclick = function() { switchChannel(id, this); };
-        document.getElementById('channel-list').appendChild(div);
-        switchChannel(id, div);
+        div.onclick = function() { switchChannel(id, this, false); };
+        document.getElementById('text-channels').appendChild(div);
+        switchChannel(id, div, false);
       }
     }
 
-    function switchChannel(id, el) {
+    function switchChannel(id, el, isDm = false, dmTarget = null) {
       currentChannel = id;
-      channelTitle.innerText = el.innerText;
+      isDirectMessage = isDm;
+      targetDmUser = dmTarget;
+
+      channelTitle.innerText = isDm ? `💬 ЛС с ${dmTarget}` : el.innerText;
       document.querySelectorAll('.channel-item').forEach(e => e.classList.remove('active'));
-      el.classList.add('active');
+      if (el) el.classList.add('active');
+
       cancelReply();
       loadMessages();
     }
 
-    function deleteMessage(docId) {
-      if (confirm("Удалить сообщение?")) {
-        db.collection("channels").doc(currentChannel).collection("messages").doc(docId).delete();
+    function getCollectionRef() {
+      if (isDirectMessage) {
+        return db.collection("direct_messages").doc(currentChannel).collection("messages");
+      } else {
+        return db.collection("channels").doc(currentChannel).collection("messages");
       }
     }
 
-    // 🔍 Фильтрация поиска
+    function deleteMessage(docId) {
+      if (confirm("Удалить сообщение?")) {
+        getCollectionRef().doc(docId).delete();
+      }
+    }
+
     function filterMessages() {
       const query = document.getElementById('search-input').value.toLowerCase();
       const filtered = loadedMessagesCache.filter(m => m.text.toLowerCase().includes(query));
@@ -349,25 +493,37 @@
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
         if (replyTarget) data.reply = replyTarget;
-        db.collection("channels").doc(currentChannel).collection("messages").add(data);
+
+        getCollectionRef().add(data);
         input.value = ''; cancelReply();
       }
     });
 
+    let isInitialLoad = true;
     function loadMessages() {
       if (unsubscribe) unsubscribe();
+      isInitialLoad = true;
 
-      unsubscribe = db.collection("channels").doc(currentChannel).collection("messages")
+      unsubscribe = getCollectionRef()
         .orderBy("createdAt", "asc")
         .onSnapshot((snapshot) => {
           loadedMessagesCache = [];
           pinnedBar.style.display = 'none';
 
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === "added" && !isInitialLoad) {
+              const msgData = change.doc.data();
+              if (msgData.user !== username) {
+                playNotificationSound();
+                triggerPushNotification(msgData.user, msgData.text);
+              }
+            }
+          });
+
           snapshot.forEach((doc) => {
             const data = doc.data();
             data.id = doc.id;
             loadedMessagesCache.push(data);
-            if (data.user) activeUsers.set(data.user, { avatar: data.userAvatar || '', role: data.role || 'User' });
             if (data.isPinned) {
               pinnedBar.style.display = 'flex';
               document.getElementById('pinned-text').innerText = `${data.user}: ${data.text}`;
@@ -375,7 +531,7 @@
           });
 
           renderMessages(loadedMessagesCache);
-          updateMembersList();
+          isInitialLoad = false;
         });
     }
 
@@ -393,15 +549,12 @@
         let replyHTML = data.reply ? `<div class="reply-quote"><span>@${data.reply.author}</span>: ${data.reply.text}</div>` : '';
         const safeText = data.text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
-        // Права на удаление: Свое сообщение ИЛИ Модератор / Админ
         const canDelete = (data.user === username) || (userRole === "Admin" || userRole === "Mod");
 
         let actionBtns = `<div class="action-btns">
           <button class="action-btn" onclick="setReply('${data.user}', '${safeText}')">↩️</button>
           <button class="action-btn" onclick="togglePin('${docId}', ${!!data.isPinned})">📌</button>`;
-        if (canDelete) {
-          actionBtns += `<button class="action-btn" onclick="deleteMessage('${docId}')">🗑️</button>`;
-        }
+        if (canDelete) actionBtns += `<button class="action-btn" onclick="deleteMessage('${docId}')">🗑️</button>`;
         actionBtns += `</div>`;
 
         const msgDiv = document.createElement('div');
@@ -409,12 +562,12 @@
         msgDiv.innerHTML = `
           ${replyHTML}
           <div class="msg-main">
-            <div class="avatar-wrapper">
+            <div class="avatar-wrapper" onclick="openDM('${data.user}')" style="cursor:pointer" title="Нажмите, чтобы открыть ЛС">
               <div class="avatar" style="${avatarStyle}">${avatarInner}</div>
             </div>
             <div class="msg-content">
               <div class="msg-header">
-                <span class="msg-author">${data.user}</span>
+                <span class="msg-author" onclick="openDM('${data.user}')" style="cursor:pointer">${data.user}</span>
                 <span class="role-badge">${data.role || 'User'}</span>
                 <span class="msg-time">${timeStr}</span>
               </div>
@@ -428,18 +581,82 @@
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    function updateMembersList() {
+    // Слушатель глобального списка пользователей
+    db.collection("users").onSnapshot((snapshot) => {
       membersList.innerHTML = '';
-      activeUsers.forEach((info, userName) => {
-        const bg = getColorForUser(userName);
-        const letter = userName[0].toUpperCase();
-        const avatarStyle = info.avatar ? `background-image: url('${info.avatar}')` : `background-color: ${bg}`;
-        const letterContent = info.avatar ? '' : letter;
+      snapshot.forEach((doc) => {
+        const u = doc.data();
+        const bg = getColorForUser(u.user || '');
+        const letter = u.user ? u.user[0].toUpperCase() : '?';
+        const avatarStyle = u.avatar ? `background-image: url('${u.avatar}')` : `background-color: ${bg}`;
+        const letterContent = u.avatar ? '' : letter;
+        const statusClass = u.status || 'offline';
+
         const div = document.createElement('div');
         div.className = 'member-item';
-        div.innerHTML = `<div class="member-avatar" style="${avatarStyle}">${letterContent}</div><span>${userName}</span>`;
+        div.onclick = () => openDM(u.user);
+        div.innerHTML = `
+          <div class="avatar-wrapper">
+            <div class="member-avatar" style="${avatarStyle}">${letterContent}</div>
+            <div class="status-badge status-${statusClass}"></div>
+          </div>
+          <div class="member-details">
+            <span class="member-name">${u.user}</span>
+            <span class="member-status-text">${u.customStatus || u.status || 'в сети'}</span>
+          </div>
+        `;
         membersList.appendChild(div);
       });
+    });
+
+    // 🔊 ГОЛОСОВЫЕ КАНАЛЫ (PeerJS / WebRTC)
+    let peer = null;
+    let localStream = null;
+
+    function joinVoiceChannel(channelName, element) {
+      if (localStream) leaveVoiceChannel();
+
+      navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then((stream) => {
+        localStream = stream;
+        
+        // Регистрируем Peer с именем пользователя
+        peer = new Peer(username.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+        peer.on('open', (id) => {
+          document.getElementById('voice-status-bar').style.display = 'flex';
+          document.getElementById('connected-voice-name').innerText = channelName;
+        });
+
+        // Отвечаем на входящие звонки
+        peer.on('call', (call) => {
+          call.answer(localStream);
+          call.on('stream', (remoteStream) => {
+            playRemoteAudio(remoteStream);
+          });
+        });
+
+      }).catch((err) => {
+        alert("Не удалось получить доступ к микрофону!");
+      });
+    }
+
+    function playRemoteAudio(stream) {
+      const audio = document.createElement('audio');
+      audio.srcObject = stream;
+      audio.autoplay = true;
+      document.body.appendChild(audio);
+    }
+
+    function leaveVoiceChannel() {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+      if (peer) {
+        peer.destroy();
+        peer = null;
+      }
+      document.getElementById('voice-status-bar').style.display = 'none';
     }
 
     loadMessages();
