@@ -23,16 +23,22 @@
     .channel-item { padding: 6px 8px; border-radius: 4px; color: #949ba4; cursor: pointer; display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
     .channel-item.active, .channel-item:hover { background: #35373c; color: #f2f3f5; }
 
+    /* Профиль пользователя внизу сайдбара */
+    .user-profile-bar { height: 52px; background: #232428; padding: 0 8px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #1f2023; }
+    .profile-info { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .profile-info:hover { opacity: 0.8; }
+    .profile-name { font-size: 13px; font-weight: 600; color: #f2f3f5; }
+
     /* Чат */
     .chat-area { flex: 1; display: flex; flex-direction: column; background: #313338; }
     .chat-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; padding: 0 16px; font-weight: bold; color: #f2f3f5; }
     .messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
 
     .message { display: flex; gap: 16px; position: relative; }
-    .message:hover .delete-btn { display: inline-block; }
+    .message:hover .action-btns { display: flex; }
 
     .avatar-wrapper { position: relative; width: 40px; height: 40px; flex-shrink: 0; }
-    .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+    .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; background-size: cover; background-position: center; }
     .status-dot { position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-radius: 50%; background: #23a55a; border: 2px solid #313338; }
     
     .msg-content { display: flex; flex-direction: column; flex: 1; }
@@ -41,9 +47,11 @@
     .msg-time { font-size: 11px; color: #949ba4; }
     .msg-text { color: #dbdee1; font-size: 14px; margin-top: 4px; word-break: break-word; }
 
-    /* Кнопка удаления сообщения */
-    .delete-btn { display: none; position: absolute; right: 10px; top: 0; background: #2b2d31; border: 1px solid #1f2023; border-radius: 4px; color: #f23f43; padding: 2px 6px; font-size: 12px; cursor: pointer; }
-    .delete-btn:hover { background: #f23f43; color: white; }
+    /* Кнопки действия с сообщением */
+    .action-btns { display: none; position: absolute; right: 10px; top: -10px; background: #313338; border: 1px solid #2b2d31; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .action-btn { background: none; border: none; color: #b5bac1; padding: 4px 8px; font-size: 12px; cursor: pointer; }
+    .action-btn:hover { background: #35373c; color: #f2f3f5; }
+    .action-btn.delete:hover { background: #f23f43; color: white; }
 
     .chat-image { max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 8px; display: block; }
 
@@ -63,7 +71,7 @@
     .members-title { font-size: 12px; font-weight: bold; color: #949ba4; text-transform: uppercase; padding-left: 8px; margin-bottom: 4px; }
     .member-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; color: #949ba4; }
     .member-item:hover { background: #35373c; color: #f2f3f5; }
-    .member-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white; position: relative; }
+    .member-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white; position: relative; background-size: cover; background-position: center; }
   </style>
 </head>
 <body>
@@ -81,6 +89,16 @@
       <div class="channel-item active" onclick="switchChannel('general', this)"># общий</div>
       <div class="channel-item" onclick="switchChannel('memes', this)"># мемы</div>
       <div class="channel-item" onclick="switchChannel('offtopic', this)"># флуд</div>
+    </div>
+    
+    <div class="user-profile-bar">
+      <div class="profile-info" onclick="changeAvatar()" title="Нажми, чтобы изменить аватарку">
+        <div class="avatar-wrapper">
+          <div class="avatar" id="my-avatar">?</div>
+          <div class="status-dot"></div>
+        </div>
+        <span class="profile-name" id="my-name">Пользователь</span>
+      </div>
     </div>
   </div>
 
@@ -131,8 +149,12 @@
     const db = firebase.firestore();
 
     const username = prompt("Введите ваш никнейм:") || "Пользователь";
+    let avatarUrl = localStorage.getItem('user_avatar') || '';
     let currentChannel = "general";
     let unsubscribe = null;
+
+    document.getElementById('my-name').innerText = username;
+    updateMyAvatarUI();
 
     const form = document.getElementById('chat-form');
     const input = document.getElementById('msg-input');
@@ -142,7 +164,7 @@
     const emojiPicker = document.getElementById('emoji-picker');
     const channelList = document.getElementById('channel-list');
 
-    const activeUsers = new Set();
+    const activeUsers = new Map();
 
     function getColorForUser(str) {
       let hash = 0;
@@ -150,6 +172,28 @@
         hash = str.charCodeAt(i) + ((hash << 5) - hash);
       }
       return `hsl(${Math.abs(hash) % 360}, 60%, 50%)`;
+    }
+
+    function changeAvatar() {
+      const url = prompt("Вставьте прямую ссылку на аватарку (PNG/JPG):", avatarUrl);
+      if (url !== null) {
+        avatarUrl = url;
+        localStorage.setItem('user_avatar', avatarUrl);
+        updateMyAvatarUI();
+        loadMessages();
+      }
+    }
+
+    function updateMyAvatarUI() {
+      const myAvatarEl = document.getElementById('my-avatar');
+      if (avatarUrl) {
+        myAvatarEl.style.backgroundImage = `url('${avatarUrl}')`;
+        myAvatarEl.innerText = '';
+      } else {
+        myAvatarEl.style.backgroundImage = 'none';
+        myAvatarEl.style.backgroundColor = getColorForUser(username);
+        myAvatarEl.innerText = username[0].toUpperCase();
+      }
     }
 
     function toggleEmojiPicker() {
@@ -162,9 +206,8 @@
       emojiPicker.style.display = 'none';
     }
 
-    // Создание нового текстового канала
     function createNewChannel() {
-      const name = prompt("Введите название нового канала (без пробелов):");
+      const name = prompt("Введите название нового канала:");
       if (name) {
         const channelId = name.toLowerCase().replace(/\s+/g, '-');
         const newDiv = document.createElement('div');
@@ -191,26 +234,40 @@
       return (url.match(/\.(jpeg|jpg|gif|png|webp)$/) != null) || url.startsWith('https://images.unsplash.com/');
     }
 
-    // Удаление конкретного сообщения по ID
     function deleteMessage(docId) {
       if (confirm("Удалить сообщение?")) {
         db.collection("channels").doc(currentChannel).collection("messages").doc(docId).delete();
       }
     }
 
+    function editMessage(docId, oldText) {
+      const newText = prompt("Редактировать сообщение:", oldText);
+      if (newText && newText !== oldText) {
+        db.collection("channels").doc(currentChannel).collection("messages").doc(docId).update({
+          text: newText,
+          isEdited: true
+        });
+      }
+    }
+
     function updateMembersList() {
       membersList.innerHTML = '';
-      activeUsers.forEach(user => {
-        const bg = getColorForUser(user);
-        const letter = user[0].toUpperCase();
+      activeUsers.forEach((userAvatar, userName) => {
+        const bg = getColorForUser(userName);
+        const letter = userName[0].toUpperCase();
+        const avatarStyle = userAvatar 
+          ? `background-image: url('${userAvatar}')` 
+          : `background-color: ${bg}`;
+        const letterContent = userAvatar ? '' : letter;
+
         const memberDiv = document.createElement('div');
         memberDiv.className = 'member-item';
         memberDiv.innerHTML = `
-          <div class="member-avatar" style="background-color: ${bg}">
-            ${letter}
+          <div class="member-avatar" style="${avatarStyle}">
+            ${letterContent}
             <div class="status-dot"></div>
           </div>
-          <span>${user}</span>
+          <span>${userName}</span>
         `;
         membersList.appendChild(memberDiv);
       });
@@ -222,6 +279,7 @@
       if (text) {
         db.collection("channels").doc(currentChannel).collection("messages").add({
           user: username,
+          userAvatar: avatarUrl,
           text: text,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -243,30 +301,38 @@
             const docId = doc.id;
 
             if (data.text) {
-              if (data.user) activeUsers.add(data.user);
+              if (data.user) activeUsers.set(data.user, data.userAvatar || '');
 
               const timeStr = data.createdAt 
                 ? new Date(data.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : 'только что';
 
+              const editedTag = data.isEdited ? ' <span style="font-size:10px; color:#949ba4;">(изменено)</span>' : '';
               const bg = getColorForUser(data.user || '');
               const firstLetter = data.user ? data.user[0].toUpperCase() : '?';
 
-              let messageBody = `<div class="msg-text">${data.text}</div>`;
+              const avatarStyle = data.userAvatar 
+                ? `background-image: url('${data.userAvatar}')` 
+                : `background-color: ${bg}`;
+              const avatarInner = data.userAvatar ? '' : firstLetter;
+
+              let messageBody = `<div class="msg-text">${data.text}${editedTag}</div>`;
               if (isImageUrl(data.text)) {
                 messageBody += `<img src="${data.text}" class="chat-image" alt="Изображение">`;
               }
 
-              // Кнопка удаления показывается только для своих сообщений
-              const deleteBtn = (data.user === username)
-                ? `<button class="delete-btn" onclick="deleteMessage('${docId}')">🗑️ Удалить</button>`
+              const actionBtns = (data.user === username)
+                ? `<div class="action-btns">
+                    <button class="action-btn" onclick="editMessage('${docId}', '${data.text.replace(/'/g, "\\'")}')">✏️ Edit</button>
+                    <button class="action-btn delete" onclick="deleteMessage('${docId}')">🗑️ Delete</button>
+                   </div>`
                 : '';
 
               const msgDiv = document.createElement('div');
               msgDiv.className = 'message';
               msgDiv.innerHTML = `
                 <div class="avatar-wrapper">
-                  <div class="avatar" style="background-color: ${bg}">${firstLetter}</div>
+                  <div class="avatar" style="${avatarStyle}">${avatarInner}</div>
                   <div class="status-dot"></div>
                 </div>
                 <div class="msg-content">
@@ -276,7 +342,7 @@
                   </div>
                   ${messageBody}
                 </div>
-                ${deleteBtn}
+                ${actionBtns}
               `;
               messagesContainer.appendChild(msgDiv);
             }
