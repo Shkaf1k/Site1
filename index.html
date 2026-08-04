@@ -15,8 +15,11 @@
 
     /* Панель каналов */
     .channels-sidebar { width: 240px; background: #2b2d31; display: flex; flex-direction: column; }
-    .server-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; padding: 0 16px; font-weight: bold; color: #f2f3f5; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-    .channel-list { padding: 8px; flex: 1; }
+    .server-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-weight: bold; color: #f2f3f5; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+    .add-channel-btn { background: none; border: none; color: #949ba4; font-size: 20px; cursor: pointer; }
+    .add-channel-btn:hover { color: #f2f3f5; }
+
+    .channel-list { padding: 8px; flex: 1; overflow-y: auto; }
     .channel-item { padding: 6px 8px; border-radius: 4px; color: #949ba4; cursor: pointer; display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
     .channel-item.active, .channel-item:hover { background: #35373c; color: #f2f3f5; }
 
@@ -25,16 +28,22 @@
     .chat-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; padding: 0 16px; font-weight: bold; color: #f2f3f5; }
     .messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
 
-    .message { display: flex; gap: 16px; }
+    .message { display: flex; gap: 16px; position: relative; }
+    .message:hover .delete-btn { display: inline-block; }
+
     .avatar-wrapper { position: relative; width: 40px; height: 40px; flex-shrink: 0; }
     .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
     .status-dot { position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-radius: 50%; background: #23a55a; border: 2px solid #313338; }
     
-    .msg-content { display: flex; flex-direction: column; }
+    .msg-content { display: flex; flex-direction: column; flex: 1; }
     .msg-header { display: flex; align-items: baseline; gap: 8px; }
     .msg-author { font-weight: 600; color: #f2f3f5; font-size: 15px; }
     .msg-time { font-size: 11px; color: #949ba4; }
     .msg-text { color: #dbdee1; font-size: 14px; margin-top: 4px; word-break: break-word; }
+
+    /* Кнопка удаления сообщения */
+    .delete-btn { display: none; position: absolute; right: 10px; top: 0; background: #2b2d31; border: 1px solid #1f2023; border-radius: 4px; color: #f23f43; padding: 2px 6px; font-size: 12px; cursor: pointer; }
+    .delete-btn:hover { background: #f23f43; color: white; }
 
     .chat-image { max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 8px; display: block; }
 
@@ -45,12 +54,11 @@
     .emoji-btn { background: none; border: none; font-size: 20px; cursor: pointer; opacity: 0.7; transition: 0.2s; }
     .emoji-btn:hover { opacity: 1; transform: scale(1.1); }
 
-    /* Панель выбора смайлов */
     .emoji-picker { display: none; position: absolute; bottom: 70px; right: 16px; background: #2b2d31; border: 1px solid #1f2023; border-radius: 8px; padding: 10px; gap: 8px; grid-template-columns: repeat(5, 1fr); box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 10; }
     .emoji-picker span { font-size: 22px; cursor: pointer; text-align: center; transition: 0.1s; }
     .emoji-picker span:hover { transform: scale(1.2); }
 
-    /* Список участников (справа) */
+    /* Список участников */
     .members-sidebar { width: 200px; background: #2b2d31; padding: 16px 8px; display: flex; flex-direction: column; gap: 8px; border-left: 1px solid #1f2023; }
     .members-title { font-size: 12px; font-weight: bold; color: #949ba4; text-transform: uppercase; padding-left: 8px; margin-bottom: 4px; }
     .member-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; color: #949ba4; }
@@ -65,8 +73,11 @@
   </div>
 
   <div class="channels-sidebar">
-    <div class="server-header">Idinakhuykord</div>
-    <div class="channel-list">
+    <div class="server-header">
+      <span>Idinakhuykord</span>
+      <button class="add-channel-btn" onclick="createNewChannel()" title="Создать канал">+</button>
+    </div>
+    <div class="channel-list" id="channel-list">
       <div class="channel-item active" onclick="switchChannel('general', this)"># общий</div>
       <div class="channel-item" onclick="switchChannel('memes', this)"># мемы</div>
       <div class="channel-item" onclick="switchChannel('offtopic', this)"># флуд</div>
@@ -129,6 +140,7 @@
     const channelTitle = document.getElementById('current-channel-title');
     const membersList = document.getElementById('members-list');
     const emojiPicker = document.getElementById('emoji-picker');
+    const channelList = document.getElementById('channel-list');
 
     const activeUsers = new Set();
 
@@ -150,6 +162,20 @@
       emojiPicker.style.display = 'none';
     }
 
+    // Создание нового текстового канала
+    function createNewChannel() {
+      const name = prompt("Введите название нового канала (без пробелов):");
+      if (name) {
+        const channelId = name.toLowerCase().replace(/\s+/g, '-');
+        const newDiv = document.createElement('div');
+        newDiv.className = 'channel-item';
+        newDiv.innerText = `# ${channelId}`;
+        newDiv.onclick = function() { switchChannel(channelId, this); };
+        channelList.appendChild(newDiv);
+        switchChannel(channelId, newDiv);
+      }
+    }
+
     function switchChannel(channelId, element) {
       currentChannel = channelId;
       channelTitle.innerText = element.innerText;
@@ -163,6 +189,13 @@
 
     function isImageUrl(url) {
       return (url.match(/\.(jpeg|jpg|gif|png|webp)$/) != null) || url.startsWith('https://images.unsplash.com/');
+    }
+
+    // Удаление конкретного сообщения по ID
+    function deleteMessage(docId) {
+      if (confirm("Удалить сообщение?")) {
+        db.collection("channels").doc(currentChannel).collection("messages").doc(docId).delete();
+      }
     }
 
     function updateMembersList() {
@@ -207,6 +240,8 @@
 
           snapshot.forEach((doc) => {
             const data = doc.data();
+            const docId = doc.id;
+
             if (data.text) {
               if (data.user) activeUsers.add(data.user);
 
@@ -222,6 +257,11 @@
                 messageBody += `<img src="${data.text}" class="chat-image" alt="Изображение">`;
               }
 
+              // Кнопка удаления показывается только для своих сообщений
+              const deleteBtn = (data.user === username)
+                ? `<button class="delete-btn" onclick="deleteMessage('${docId}')">🗑️ Удалить</button>`
+                : '';
+
               const msgDiv = document.createElement('div');
               msgDiv.className = 'message';
               msgDiv.innerHTML = `
@@ -236,6 +276,7 @@
                   </div>
                   ${messageBody}
                 </div>
+                ${deleteBtn}
               `;
               messagesContainer.appendChild(msgDiv);
             }
