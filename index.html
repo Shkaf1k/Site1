@@ -8,7 +8,7 @@
         body {
             background-color: #0f0f17;
             color: #fff;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             display: flex;
             justify-content: center;
@@ -20,7 +20,7 @@
             background: #1a1a26;
             padding: 25px;
             border-radius: 12px;
-            border: 1px solid #00ffcc33;
+            border: 1px solid rgba(0, 255, 204, 0.2);
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
             width: 90%;
             max-width: 450px;
@@ -50,6 +50,11 @@
             background: #09090d;
             color: #fff;
             box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #00ffcc;
         }
 
         button {
@@ -66,6 +71,7 @@
 
         button:hover {
             background: #00cca3;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
         }
     </style>
 </head>
@@ -74,7 +80,7 @@
     <!-- Вход по никнейму -->
     <div id="auth-screen" class="box">
         <h2>🎮 Вход в Squad Hub</h2>
-        <input type="text" id="username-input" placeholder="Введи свой никнейм...">
+        <input type="text" id="username-input" placeholder="Введи свой никнейм..." onkeydown="if(event.key==='Enter') login()">
         <button onclick="login()">Войти в чат</button>
     </div>
 
@@ -86,20 +92,21 @@
         <button onclick="sendMessage()">Отправить</button>
     </div>
 
-    <!-- Подключаем Firebase SDK -->
+    <!-- Подключаем библиотеки Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-        // 1. Вставь сюда ключи из консоли Firebase
+        // Твой конфиг из Firebase
         const firebaseConfig = {
-            apiKey: "ТВОЙ_API_KEY",
-            authDomain: "ТВОЙ_PROJECT_ID.firebaseapp.com",
-            databaseURL: "https://ТВОЙ_PROJECT_ID-default-rtdb.firebaseio.com",
-            projectId: "ТВОЙ_PROJECT_ID",
-            storageBucket: "ТВОЙ_PROJECT_ID.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef"
+            apiKey: "AIzaSyAG7dEtpPt6oHoMz5MlFR6aNR7phK95MWk",
+            authDomain: "sayt-dlya-druzey.firebaseapp.com",
+            databaseURL: "https://sayt-dlya-druzey-default-rtdb.firebaseio.com",
+            projectId: "sayt-dlya-druzey",
+            storageBucket: "sayt-dlya-druzey.firebasestorage.app",
+            messagingSenderId: "498949269925",
+            appId: "1:498949269925:web:9f58b3d957921b3cd6e04c",
+            measurementId: "G-L8F5K30H3C"
         };
 
         // Инициализация
@@ -122,7 +129,7 @@
             const input = document.getElementById('message-input');
             const text = input.value.trim();
             if (text && currentUser) {
-                // Сохраняем сообщение в базу
+                // Отправляем сообщение в коллекцию 'messages'
                 db.ref('messages').push({
                     user: currentUser,
                     text: text,
@@ -133,7 +140,7 @@
         }
 
         function listenMessages() {
-            // Слушаем новые сообщения в реальном времени
+            // Читаем последние 50 сообщений и получаем новые в реальном времени
             db.ref('messages').limitToLast(50).on('child_added', (snapshot) => {
                 const data = snapshot.val();
                 const msgBox = document.getElementById('messages');
@@ -147,6 +154,7 @@
             });
         }
 
+        // Защита от XSS
         function escapeHtml(text) {
             return text.replace(/[&<>"']/g, (m) => ({
                 '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
