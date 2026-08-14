@@ -2,119 +2,156 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gamer Squad Chat</title>
     <style>
         body {
-            background-color: #12121e;
+            background-color: #0f0f17;
             color: #fff;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
         }
 
-        #auth-screen, #chat-screen {
-            background: #1e1e2f;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0,255,204, 0.2);
-            width: 350px;
+        .box {
+            background: #1a1a26;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #00ffcc33;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+            width: 90%;
+            max-width: 450px;
         }
 
-        #chat-screen { display: none; width: 500px; }
+        #chat-screen { display: none; }
 
         #messages {
-            height: 300px;
+            height: 320px;
             overflow-y: auto;
-            border: 1px solid #333;
+            border: 1px solid #2a2a3a;
             padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            background: #181824;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            background: #12121e;
         }
 
-        .msg { margin-bottom: 8px; }
-        .system { color: #888; font-style: italic; }
+        .msg { margin-bottom: 8px; word-wrap: break-word; }
         .user { color: #00ffcc; font-weight: bold; }
 
         input {
-            width: calc(100% - 22px);
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            border: 1px solid #333;
-            background: #0f0f17;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            border: 1px solid #2a2a3a;
+            background: #09090d;
             color: #fff;
+            box-sizing: border-box;
         }
 
         button {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             background: #00ffcc;
+            color: #000;
             border: none;
             font-weight: bold;
             cursor: pointer;
-            border-radius: 5px;
+            border-radius: 6px;
+            transition: 0.2s;
         }
 
-        button:hover { background: #00cca3; }
+        button:hover {
+            background: #00cca3;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Экран входа -->
-    <div id="auth-screen">
-        <h2>🎮 Вход в Сквад</h2>
+    <!-- Вход по никнейму -->
+    <div id="auth-screen" class="box">
+        <h2>🎮 Вход в Squad Hub</h2>
         <input type="text" id="username-input" placeholder="Введи свой никнейм...">
-        <button onclick="login()">Войти</button>
+        <button onclick="login()">Войти в чат</button>
     </div>
 
-    <!-- Экран чата -->
-    <div id="chat-screen">
+    <!-- Общий чат -->
+    <div id="chat-screen" class="box">
         <h2>💬 Чат сквада</h2>
         <div id="messages"></div>
-        <input type="text" id="message-input" placeholder="Напиши что-нибудь...">
+        <input type="text" id="message-input" placeholder="Написать сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
         <button onclick="sendMessage()">Отправить</button>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
+    <!-- Подключаем Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <script>
-        const socket = io();
+        // 1. Вставь сюда ключи из консоли Firebase
+        const firebaseConfig = {
+            apiKey: "ТВОЙ_API_KEY",
+            authDomain: "ТВОЙ_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://ТВОЙ_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "ТВОЙ_PROJECT_ID",
+            storageBucket: "ТВОЙ_PROJECT_ID.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+
+        // Инициализация
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let currentUser = '';
 
         function login() {
-            const username = document.getElementById('username-input').value.trim();
-            if (username) {
-                socket.emit('join', username);
+            const nick = document.getElementById('username-input').value.trim();
+            if (nick) {
+                currentUser = nick;
                 document.getElementById('auth-screen').style.display = 'none';
                 document.getElementById('chat-screen').style.display = 'block';
+                listenMessages();
             }
         }
 
         function sendMessage() {
             const input = document.getElementById('message-input');
-            if (input.value.trim()) {
-                socket.emit('chat message', input.value);
+            const text = input.value.trim();
+            if (text && currentUser) {
+                // Сохраняем сообщение в базу
+                db.ref('messages').push({
+                    user: currentUser,
+                    text: text,
+                    timestamp: Date.now()
+                });
                 input.value = '';
             }
         }
 
-        socket.on('chat message', (data) => {
-            const msgBox = document.getElementById('messages');
-            const p = document.createElement('p');
-            p.className = 'msg';
-            
-            if (data.system) {
-                p.classList.add('system');
-                p.innerText = data.text;
-            } else {
-                p.innerHTML = `<span class="user">${data.user}:</span> ${data.text}`;
-            }
+        function listenMessages() {
+            // Слушаем новые сообщения в реальном времени
+            db.ref('messages').limitToLast(50).on('child_added', (snapshot) => {
+                const data = snapshot.val();
+                const msgBox = document.getElementById('messages');
+                
+                const p = document.createElement('p');
+                p.className = 'msg';
+                p.innerHTML = `<span class="user">${escapeHtml(data.user)}:</span> ${escapeHtml(data.text)}`;
 
-            msgBox.appendChild(p);
-            msgBox.scrollTop = msgBox.scrollHeight;
-        });
+                msgBox.appendChild(p);
+                msgBox.scrollTop = msgBox.scrollHeight;
+            });
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/[&<>"']/g, (m) => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+            }[m]));
+        }
     </script>
 </body>
 </html>
